@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# KrishiSahayak — Pull Request Quality Checks
+#
+# Additional checks that run only on PRs (not on direct pushes to main).
+# These are informational and advisory — they don't block merging by themselves.
+# Branch protection enforces the jobs in ci.yml.
+#
+# Checks:
+#   1. PR title follows Conventional Commits format
+#   2. PR has a linked issue (warns if missing)
+#   3. Changed files summary posted as a comment
+#   4. Bundle size comparison (web app)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: PR Quality Checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # ── Check PR title format ──────────────────────────────────────────────────
+  pr-title:
+    name: 📋 PR Title Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validate PR title follows Conventional Commits
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Must match: feat(scope): description
+          types: |
+            feat
+            fix
+            chore
+            style
+            refactor
+            test
+            docs
+            perf
+            hotfix
+          requireScope: false
+          subjectPattern: ^.{1,72}$
+          subjectPatternError: |
+            PR title must be under 72 characters.
+            Current: "{subject}"
+
+  # ── Enforce PR is not a draft ─────────────────────────────────────────────
+  no-draft:
+    name: 🚫 Not a Draft
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true
+
+    steps:
+      - name: Fail if PR is a draft
+        run: |
+          echo "❌ This PR is still a draft."
+          echo "Mark it as 'Ready for review' before CI runs."
+          exit 1
+
+  # ── Post changed files summary ────────────────────────────────────────────
+  changed-files:
+    name: 📁 Changed Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        uses: tj-actions/changed-files@v44
+        with:
+          separator: '\n'
+
+      - name: Post summary comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = `${{ steps.changed.outputs.all_changed_files }}`.split('\n').filter(Boolean);
+            const ts  = files.filter(f => f.endsWith('.ts') || f.endsWith('.tsx')).length;
+            const sql = files.filter(f => f.endsWith('.sql')).length;
+            const md  = files.filter(f => f.endsWith('.md')).length;
+
+            const body = [
+              '## 📁 Changed Files Summary',
+              '',
+              `**Total files changed:** ${files.length}`,
+              `- TypeScript/TSX files: ${ts}`,
+              `- SQL migration files: ${sql}`,
+              `- Documentation files: ${md}`,
+              '',
+              '<details>',
+              '<summary>View all changed files</summary>',
+              '',
+              '```',
+              files.slice(0, 50).join('\n'),
+              files.length > 50 ? `\n... and ${files.length - 50} more` : '',
+              '```',
+              '</details>',
+            ].join('\n');
+
+            // Find existing comment and update, or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('Changed Files Summary')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ── Warn if no linked issue ────────────────────────────────────────────────
+  linked-issue:
+    name: 🔗 Linked Issue Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check for linked issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const hasIssue = /closes?\s+#\d+/i.test(body) ||
+                             /fixes?\s+#\d+/i.test(body)  ||
+                             /resolves?\s+#\d+/i.test(body);
+
+            if (!hasIssue) {
+              core.warning(
+                '⚠️ No linked issue found in PR description. ' +
+                'Add "Closes #123" to link this PR to an issue. ' +
+                'This is a warning, not a blocker.'
+              );
+            } else {
+              console.log('✅ PR has a linked issue.');
+            }

@@ -1,0 +1,139 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# KrishiSahayak — Dummy PR Test Workflow
+#
+# PURPOSE: Validate that your CI pipeline is wired up correctly.
+# Run this ONCE after setting up the repository.
+# Delete this file after confirming everything works.
+#
+# How to use:
+#   1. Push this file to a branch: git checkout -b test/validate-ci-pipeline
+#   2. Push the branch: git push origin test/validate-ci-pipeline
+#   3. Open a PR from that branch into main on GitHub
+#   4. Watch the CI checks run in the "Checks" tab of the PR
+#   5. Confirm all 4 checks show green ✓
+#   6. Have a teammate approve the PR
+#   7. Merge it — the merge button should only be green after step 4+6
+#   8. Delete this file in a follow-up PR
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Dummy PR Validation (Delete after use)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_note:
+        description: 'Note about this test run'
+        required: false
+        default: 'Validating CI pipeline setup'
+
+jobs:
+  validate-pipeline:
+    name: 🧪 Validate Pipeline Setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print environment info
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🌾 KrishiSahayak CI Pipeline Validation"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Repository:   ${{ github.repository }}"
+          echo "Branch:       ${{ github.ref_name }}"
+          echo "Commit:       ${{ github.sha }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Run ID:       ${{ github.run_id }}"
+          echo ""
+          echo "Node version: $(node -v)"
+          echo "OS:           $(uname -a)"
+          echo ""
+          echo "Test note: ${{ inputs.test_note }}"
+          echo ""
+
+      - name: Verify workflow files exist
+        run: |
+          echo "Checking workflow files..."
+          files=(
+            ".github/workflows/ci.yml"
+            ".github/workflows/build.yml"
+            ".github/workflows/pr-checks.yml"
+            ".github/workflows/scheduled.yml"
+            ".github/PULL_REQUEST_TEMPLATE.md"
+            ".github/CODEOWNERS"
+            ".github/eas.json"
+          )
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              echo "  ✅ $f"
+            else
+              echo "  ❌ MISSING: $f"
+            fi
+          done
+
+      - name: Verify root config files exist
+        run: |
+          echo ""
+          echo "Checking root config files..."
+          files=(
+            "CONTRIBUTING.md"
+            "README.md"
+            ".eslintrc.js"
+            ".prettierrc"
+            ".gitignore"
+            "package.json"
+            "tsconfig.json"
+            "pnpm-workspace.yaml"
+            ".husky/pre-commit"
+            ".husky/commit-msg"
+          )
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              echo "  ✅ $f"
+            else
+              echo "  ❌ MISSING: $f"
+            fi
+          done
+
+      - name: Verify app structure
+        run: |
+          echo ""
+          echo "Checking app structure..."
+          dirs=(
+            "apps/mobile/src/components"
+            "apps/mobile/src/screens"
+            "apps/mobile/src/services"
+            "apps/mobile/src/stores"
+            "apps/mobile/src/theme"
+            "apps/mobile/src/i18n/locales"
+            "apps/mobile/src/types"
+            "apps/mobile/src/utils"
+            "apps/web/app"
+            "apps/web/lib"
+            "packages/ui/src"
+            "supabase/migrations"
+          )
+          for d in "${dirs[@]}"; do
+            if [ -d "$d" ]; then
+              echo "  ✅ $d/"
+            else
+              echo "  ❌ MISSING: $d/"
+            fi
+          done
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Pipeline validation complete"
+          echo ""
+          echo "Next steps:"
+          echo "  1. Check that ci.yml jobs (lint, typecheck, test, security) ran"
+          echo "  2. Set up branch protection rules (see branch-protection-setup.md)"
+          echo "  3. Add GitHub Secrets (see branch-protection-setup.md)"
+          echo "  4. Get a teammate to approve this PR and merge it"
+          echo "  5. Delete this workflow file in a follow-up PR"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# KrishiSahayak — CODEOWNERS
+# These users are automatically requested for review on PRs that touch their files.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Default — all PRs need at least one team member to review
+*                               @hura-group/team
+
+# Frontend / UI — Kartik owns all screen and component files
+apps/mobile/src/screens/        @kartik
+apps/mobile/src/components/     @kartik
+apps/mobile/src/theme/          @kartik
+apps/mobile/src/i18n/           @kartik
+apps/web/app/                   @kartik
+apps/web/components/            @kartik
+
+# Backend / DevOps — Umang owns all infrastructure files
+apps/mobile/src/services/       @umang
+supabase/                       @umang
+.github/workflows/              @umang
+apps/web/lib/                   @umang
+
+# QA / Research — Harsh owns all test and documentation files
+**/*.test.ts                    @harsh
+**/*.test.tsx                   @harsh
+**/*.spec.ts                    @harsh
+docs/                           @harsh
+*.md                            @harsh

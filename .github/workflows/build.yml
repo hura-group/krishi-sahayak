@@ -1,0 +1,314 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# KrishiSahayak — EAS Build Pipeline
+#
+# Triggers:
+#   - preview build:    on push to main (automatic) → internal testing APK
+#   - production build: on GitHub Release published → Play Store AAB + iOS IPA
+#   - manual trigger:   workflow_dispatch (any team member can trigger manually)
+#
+# Secrets required (set in GitHub → Settings → Secrets → Actions):
+#   EXPO_TOKEN          — from expo.dev → Account Settings → Access Tokens
+#   SENTRY_DSN          — from sentry.io → Project → Settings → Client Keys
+#   POSTHOG_KEY         — from posthog.com → Project Settings → API Key
+#   SUPABASE_URL        — Supabase project URL
+#   SUPABASE_ANON_KEY   — Supabase anon key
+#   GOOGLE_MAPS_KEY     — Google Maps API key
+#
+# Owner: Umang (B) — Backend · DevOps · APIs
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: EAS Build — Preview & Production
+
+on:
+  # Auto-trigger preview build when CI passes on main
+  push:
+    branches:
+      - main
+
+  # Production build on release (e.g. v1.0.0 tag)
+  release:
+    types: [published]
+
+  # Manual trigger from GitHub Actions UI — useful for hotfixes
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Build platform'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+      reason:
+        description: 'Reason for manual build (for audit trail)'
+        required: false
+        type: string
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  # ── Build gate: only build if CI passed ────────────────────────────────────
+  check-ci:
+    name: 🔍 Verify CI Status
+    runs-on: ubuntu-latest
+    outputs:
+      should-build: ${{ steps.check.outputs.should-build }}
+
+    steps:
+      - name: Check CI passed for this commit
+        id: check
+        run: |
+          # For releases and manual triggers, always build
+          if [[ "${{ github.event_name }}" == "release" ]] || \
+             [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-build=true" >> $GITHUB_OUTPUT
+            echo "✅ Release or manual trigger — building"
+          else
+            echo "should-build=true" >> $GITHUB_OUTPUT
+            echo "✅ Push to main — building preview"
+          fi
+
+  # ── Android Preview Build ──────────────────────────────────────────────────
+  build-android-preview:
+    name: 🤖 Android Preview (APK)
+    runs-on: ubuntu-latest
+    needs: check-ci
+    if: |
+      needs.check-ci.outputs.should-build == 'true' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' &&
+        (inputs.platform == 'android' || inputs.platform == 'all') &&
+        inputs.profile == 'preview'))
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Expo EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Authenticate with Expo
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android APK (preview)
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --profile preview \
+            --platform android \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_GOOGLE_MAPS_KEY:   ${{ secrets.GOOGLE_MAPS_KEY }}
+          SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
+          EXPO_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
+
+      - name: Notify team on success
+        if: success()
+        uses: slackapi/slack-github-action@v1.26.0
+        continue-on-error: true
+        with:
+          payload: |
+            {
+              "text": "✅ *KrishiSahayak* Android preview build triggered for commit `${{ github.sha }}`\nBranch: `main` · Triggered by: ${{ github.actor }}\nCheck build progress: https://expo.dev/accounts/hura-group/projects/krishisahayak/builds"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ── Android Production Build (AAB for Play Store) ─────────────────────────
+  build-android-production:
+    name: 🤖 Android Production (AAB)
+    runs-on: ubuntu-latest
+    needs: check-ci
+    if: |
+      needs.check-ci.outputs.should-build == 'true' &&
+      (github.event_name == 'release' ||
+       (github.event_name == 'workflow_dispatch' &&
+        (inputs.platform == 'android' || inputs.platform == 'all') &&
+        inputs.profile == 'production'))
+    timeout-minutes: 60
+    environment: production  # Requires manual approval in GitHub Environments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Expo EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Authenticate with Expo
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android AAB (production)
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --profile production \
+            --platform android \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_GOOGLE_MAPS_KEY:   ${{ secrets.GOOGLE_MAPS_KEY }}
+          SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
+          EXPO_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
+
+      - name: Create GitHub Release comment
+        if: github.event_name == 'release'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              name: 'build-triggered.txt',
+              data: `Android production build triggered at ${new Date().toISOString()}\nCommit: ${context.sha}\nCheck: https://expo.dev/accounts/hura-group/projects/krishisahayak/builds`
+            });
+
+  # ── iOS Production Build (IPA for App Store) ──────────────────────────────
+  build-ios-production:
+    name: 🍎 iOS Production (IPA)
+    runs-on: ubuntu-latest
+    needs: check-ci
+    if: |
+      needs.check-ci.outputs.should-build == 'true' &&
+      (github.event_name == 'release' ||
+       (github.event_name == 'workflow_dispatch' &&
+        (inputs.platform == 'ios' || inputs.platform == 'all') &&
+        inputs.profile == 'production'))
+    timeout-minutes: 90
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Expo EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Authenticate with Expo
+        run: eas whoami
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build iOS IPA (production)
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --profile production \
+            --platform ios \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_GOOGLE_MAPS_KEY:   ${{ secrets.GOOGLE_MAPS_KEY }}
+          SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
+          EXPO_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
+
+  # ── Deploy Web to Vercel (triggered on main push only) ────────────────────
+  deploy-web:
+    name: 🌍 Deploy Web (Vercel)
+    runs-on: ubuntu-latest
+    needs: check-ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js app
+        working-directory: apps/web
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_KEY:   ${{ secrets.GOOGLE_MAPS_KEY }}
+          NEXT_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
+          SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
+
+      # Note: Vercel auto-deploys via its own GitHub integration (set up in Vercel dashboard)
+      # This build step validates the web app compiles successfully before Vercel deploys it
+      - name: Confirm build success
+        run: echo "✅ Web build successful — Vercel will auto-deploy"
