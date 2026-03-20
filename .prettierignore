@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Expo build output
+.expo/
+dist/
+build/
+
+# Lock files — never format these
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Generated files
+*.lock
+src/types/supabase.ts
+
+# Assets
+*.png
+*.jpg
+*.svg
+*.json5

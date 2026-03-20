@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Enforce Conventional Commits format
+# Valid: feat(auth): add OTP screen
+# Valid: fix(market): correct price sorting
+# Invalid: wip, changes, Merged branch...
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Conventional commit pattern
+PATTERN="^(feat|fix|chore|style|refactor|test|docs|perf)(\(.+\))?: .{1,72}$"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "❌  Invalid commit message format."
+  echo ""
+  echo "    Expected: type(scope): short description"
+  echo "    Example:  feat(weather): add 7-day forecast screen"
+  echo ""
+  echo "    Valid types: feat | fix | chore | style | refactor | test | docs | perf"
+  echo "    Valid scopes: auth | weather | market | pest | marketplace | community"
+  echo "                  chat | gamification | expense | notifications | settings"
+  echo "                  offline | i18n | ui | analytics"
+  echo ""
+  echo "    Your message: \"$COMMIT_MSG\""
+  echo ""
+  exit 1
+fi
+
+echo "✅  Commit message format valid."
