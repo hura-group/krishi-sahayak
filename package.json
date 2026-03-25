@@ -43,6 +43,8 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "^3.0.1",
     "@supabase/supabase-js": "^2.99.3",
-    "expo-secure-store": "^55.0.9"
+    "expo-secure-store": "^55.0.9",
+    "libphonenumber-js": "^1.12.40",
+    "posthog-react-native": "^4.37.6"
   }
 }
