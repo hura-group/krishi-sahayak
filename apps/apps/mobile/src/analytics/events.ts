@@ -5,38 +5,38 @@
 
 export const ANALYTICS_EVENTS = {
   // ── App lifecycle ──────────────────────────────────────────
-  APP_OPEN: 'app_open',                         // App launched / foregrounded
-  APP_BACKGROUND: 'app_background',             // App sent to background
+  APP_OPEN: 'app_open', // App launched / foregrounded
+  APP_BACKGROUND: 'app_background', // App sent to background
 
   // ── Auth ──────────────────────────────────────────────────
-  OTP_SENT: 'otp_sent',                         // OTP requested
-  OTP_VERIFIED: 'otp_verified',                 // OTP verified successfully
-  OTP_FAILED: 'otp_failed',                     // OTP verification failed
-  LOGOUT: 'logout',                             // User logged out
+  OTP_SENT: 'otp_sent', // OTP requested
+  OTP_VERIFIED: 'otp_verified', // OTP verified successfully
+  OTP_FAILED: 'otp_failed', // OTP verification failed
+  LOGOUT: 'logout', // User logged out
 
   // ── Onboarding ────────────────────────────────────────────
-  ONBOARDING_STARTED: 'onboarding_started',     // First time user starts onboarding
+  ONBOARDING_STARTED: 'onboarding_started', // First time user starts onboarding
   ONBOARDING_COMPLETED: 'onboarding_completed', // User completed onboarding
 
   // ── Weather ───────────────────────────────────────────────
-  WEATHER_VIEWED: 'weather_viewed',             // Weather screen opened
+  WEATHER_VIEWED: 'weather_viewed', // Weather screen opened
   WEATHER_LOCATION_CHANGED: 'weather_location_changed', // User changed location
 
   // ── Crop / Advisory ───────────────────────────────────────
-  CROP_SELECTED: 'crop_selected',               // User picks a crop
-  ADVISORY_VIEWED: 'advisory_viewed',           // Advisory detail opened
+  CROP_SELECTED: 'crop_selected', // User picks a crop
+  ADVISORY_VIEWED: 'advisory_viewed', // Advisory detail opened
 
   // ── Market ────────────────────────────────────────────────
-  MARKET_PRICE_VIEWED: 'market_price_viewed',   // Mandi price screen opened
+  MARKET_PRICE_VIEWED: 'market_price_viewed', // Mandi price screen opened
 
   // ── Navigation ────────────────────────────────────────────
-  TAB_SWITCHED: 'tab_switched',                 // Bottom tab changed
+  TAB_SWITCHED: 'tab_switched', // Bottom tab changed
 
   // ── Errors ────────────────────────────────────────────────
-  API_ERROR: 'api_error',                       // Any API call failure
+  API_ERROR: 'api_error', // Any API call failure
 } as const;
 
-export type AnalyticsEvent = typeof ANALYTICS_EVENTS[keyof typeof ANALYTICS_EVENTS];
+export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
 
 // ── Per-event property types ───────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export interface EventProperties {
   };
   app_background: Record<string, never>;
   otp_sent: {
-    phone_masked: string;   // e.g. "+91 ****1234"
+    phone_masked: string; // e.g. "+91 ****1234"
   };
   otp_verified: {
     phone_masked: string;
