@@ -23,18 +23,20 @@ Expense tracker · Gamification + leaderboard · Offline-first architecture · 4
 ```
 krishisahayak/
 ├── apps/
-│   ├── mobile/          # React Native (Expo SDK 51) — iOS + Android
-│   └── web/             # Next.js 14 (App Router) — krishisahayak.com
+│   ├── mobile/          # React Native (Expo SDK 54) — iOS + Android
+│   └── web/             # Next.js 16 (App Router) — krishisahayak.com
 ├── packages/
 │   └── ui/              # Shared components (Button, Card, etc.)
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md
-│   └── ci.yml           # GitHub Actions — lint → typecheck → test
+│   ├── ci.yml           # GitHub Actions — lint → typecheck → test
+│   └── build.yml        # EAS Build + Vercel deployment
 ├── .husky/              # Pre-commit + commit-msg hooks
 ├── CONTRIBUTING.md      # Branch naming, commit format, PR rules
-├── .eslintrc.js         # ESLint config (eslint-config-expo + prettier)
+├── .eslintrc.js         # Root ESLint config (eslint-config-expo + prettier)
 ├── .prettierrc          # Prettier config
 ├── tsconfig.json        # TypeScript config (strict: true)
+├── jest.config.js       # Root Jest config for monorepo testing
 └── package.json         # Root scripts + lint-staged config
 ```
 
@@ -47,7 +49,7 @@ krishisahayak/
 git clone https://github.com/hura-group/krishisahayak.git
 cd krishisahayak
 
-# 2. Install everything
+# 2. Install everything from the root
 pnpm install
 
 # 3. Set up environment variables
@@ -56,10 +58,10 @@ cp apps/web/.env.example apps/web/.env.local
 # Fill in both files — see each app's README.md for details
 
 # 4. Start mobile
-cd apps/mobile && pnpm start
+pnpm -C apps/mobile start
 
 # 5. Start web (separate terminal)
-cd apps/web && pnpm dev
+pnpm -C apps/web dev
 ```
 
 Full setup guide: [`apps/mobile/README.md`](apps/mobile/README.md) · [`apps/web/README.md`](apps/web/README.md)
@@ -70,15 +72,15 @@ Full setup guide: [`apps/mobile/README.md`](apps/mobile/README.md) · [`apps/web
 
 | Layer | Mobile | Web |
 |---|---|---|
-| Language | TypeScript 5.x strict | TypeScript 5.x strict |
-| Framework | React Native 0.74 + Expo SDK 51 | Next.js 14 App Router |
-| Styling | NativeWind v4 | Tailwind CSS 3.x + shadcn/ui |
+| Language | TypeScript 5.9 strict | TypeScript 5.9 strict |
+| Framework | React Native 0.81 + Expo SDK 54 | Next.js 16 App Router |
+| Styling | NativeWind v4 | Tailwind CSS 4.x + shadcn/ui |
 | State | Zustand + TanStack Query v5 | TanStack Query v5 |
 | Backend | Supabase (Postgres 15 + Realtime + Auth + Storage) | Supabase (same project) |
 | Auth | Supabase Auth + Twilio Verify (Phone OTP) | Supabase Auth |
 | AI | Plant.id (pest detection) | — |
 | Offline | WatermelonDB + MMKV | — |
-| Animations | Reanimated 3 + Lottie | CSS animations |
+| Animations | Reanimated 4 + Lottie | CSS animations |
 | Analytics | PostHog | PostHog |
 | Errors | Sentry | Sentry |
 | CI/CD | GitHub Actions + EAS Build | Vercel auto-deploy |
