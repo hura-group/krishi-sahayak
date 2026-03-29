@@ -9,7 +9,7 @@ export function getPostHogClient(): PostHog {
   if (!_client) {
     throw new Error(
       '[Analytics] PostHog client not initialised. ' +
-        'Ensure <PostHogProvider> wraps your app root before calling track().'
+      'Ensure <PostHogProvider> wraps your app root before calling track().'
     );
   }
   return _client;

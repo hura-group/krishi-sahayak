@@ -19,8 +19,7 @@
     }
   },
   "include": [
-    "apps/mobile/src/**/*",
-    "apps/web/**/*"
+    "apps/mobile/src/**/*"
   ],
   "exclude": [
     "node_modules",
