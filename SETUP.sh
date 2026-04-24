@@ -40,6 +40,14 @@ echo "Installing all dependencies..."
 pnpm install
 echo -e "${GREEN}✅ Dependencies installed${NC}"
 
+# ── Step 3b: Install Expo-managed native packages ──────────────────────────
+echo ""
+echo "Installing Expo native packages..."
+cd apps/mobile
+npx expo install react-native-maps expo-location expo-notifications expo-device 2>/dev/null || true
+cd ../..
+echo -e "${GREEN}✅ Native packages installed${NC}"
+
 # ── Step 4: Set up Husky ───────────────────────────────────────────────────
 echo ""
 echo "Setting up Husky pre-commit hooks..."
@@ -81,15 +89,26 @@ echo "────────────────────────�
 echo -e "${GREEN}🌾  Setup complete!${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Fill in your env variables:"
-echo "     - apps/mobile/.env"
-echo "     - apps/web/.env.local"
+echo "  1. Fill in your environment variables:"
+echo "     open apps/mobile/.env"
 echo ""
-echo "  2. Start the mobile app:"
+echo "     Required keys:"
+echo "       EXPO_PUBLIC_SUPABASE_URL      — from supabase.com → Settings → API"
+echo "       EXPO_PUBLIC_SUPABASE_ANON_KEY — same place"
+echo "       GOOGLE_MAPS_API_KEY           — from console.cloud.google.com"
+echo "       EXPO_PUBLIC_PROJECT_ID        — from expo.dev → your project"
+echo ""
+echo "     Google Maps — enable these APIs in Cloud Console:"
+echo "       Maps SDK for Android + iOS · Places API · Directions API"
+echo ""
+echo "  2. Run the Supabase migrations:"
+echo "     supabase db push   OR paste each file in Supabase SQL editor"
+echo "     supabase/migrations/20260318000001_init_schema.sql"
+echo "     supabase/migrations/20260424000001_price_alerts.sql"
+echo "     supabase/migrations/20260424000002_mandis.sql"
+echo ""
+echo "  3. Start the mobile app:"
 echo "     cd apps/mobile && pnpm start"
-echo ""
-echo "  3. Start the web app (separate terminal):"
-echo "     cd apps/web && pnpm dev"
 echo ""
 echo "  4. Read CONTRIBUTING.md before your first commit."
 echo ""
