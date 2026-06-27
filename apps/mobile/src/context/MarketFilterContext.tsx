@@ -16,6 +16,7 @@ interface MarketFilterContextType {
   toggleCrop: (crop: string) => void;
   setSort: (sort: SortOption) => void;
   resetFilter: () => void;
+  applyProfileDefaults: (state: string | null, crops: string[]) => void;
 }
 
 const defaultFilter: MarketFilter = {
@@ -24,6 +25,8 @@ const defaultFilter: MarketFilter = {
   sort: 'date_desc',
   dateRange: 7,
 };
+
+const PROFILE_DEFAULTS_KEY = 'market_filter_profile_applied';
 
 const marketFilterStorage = {
   get: (): MarketFilter | undefined => {
@@ -45,6 +48,26 @@ const marketFilterStorage = {
       // ignore
     }
   },
+  // Tracks whether we've already seeded the filter from the user's profile once.
+  // Prevents re-applying defaults and clobbering a filter the user has since changed.
+  hasAppliedProfileDefaults: (): boolean => {
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      return storage.getBoolean(PROFILE_DEFAULTS_KEY) ?? false;
+    } catch {
+      return false;
+    }
+  },
+  markProfileDefaultsApplied: () => {
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      storage.set(PROFILE_DEFAULTS_KEY, true);
+    } catch {
+      // ignore
+    }
+  },
 };
 
 const MarketFilterContext = createContext<MarketFilterContextType>({
@@ -54,6 +77,7 @@ const MarketFilterContext = createContext<MarketFilterContextType>({
   toggleCrop: () => {},
   setSort: () => {},
   resetFilter: () => {},
+  applyProfileDefaults: () => {},
 });
 
 export const MarketFilterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,9 +107,22 @@ export const MarketFilterProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const resetFilter = () => setFilterState(defaultFilter);
 
+  // Seeds the filter from the user's profile (home state) + their actively
+  // tracked crops (from price_alerts), but only the FIRST time it's ever
+  // called for this device — never overrides a filter the user later changes.
+  const applyProfileDefaults = (state: string | null, crops: string[]) => {
+    if (marketFilterStorage.hasAppliedProfileDefaults()) return;
+    marketFilterStorage.markProfileDefaultsApplied();
+    setFilterState(prev => ({
+      ...prev,
+      state: state ?? prev.state,
+      crops: crops.length > 0 ? crops : prev.crops,
+    }));
+  };
+
   return (
     <MarketFilterContext.Provider
-      value={{ filter, setFilter, updateState, toggleCrop, setSort, resetFilter }}
+      value={{ filter, setFilter, updateState, toggleCrop, setSort, resetFilter, applyProfileDefaults }}
     >
       {children}
     </MarketFilterContext.Provider>

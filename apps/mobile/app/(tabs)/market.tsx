@@ -2,9 +2,15 @@ import React, { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MarketFilterProvider } from '../../src/context/MarketFilterContext';
 import { useMarketFilter } from '../../hooks/useMarketFilter';
+import { useProfileDefaults } from '../../hooks/useProfileDefaults';
 import { FilterChips, FilterPanel, MarketPriceList } from '../../components/MarketFilter';
 
 const MarketPricesContent: React.FC = () => {
+  // Seeds the filter once from the user's profile (home state) + actively
+  // tracked crops — no-ops after the first successful run, and never
+  // overrides a filter the user has since changed.
+  useProfileDefaults();
+
   const { prices, loading, error, refresh } = useMarketFilter();
   const [refreshing, setRefreshing] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
