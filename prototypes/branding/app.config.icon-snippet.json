@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "KisanSathi",
+    "slug": "kisansathi",
+
+    "icon": "./assets/images/icon.png",
+
+    "android": {
+      "package": "com.kisansathi.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/images/adaptive-icon-background.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
+      }
+    },
+
+    "ios": {
+      "bundleIdentifier": "com.kisansathi.app",
+      "icon": "./assets/images/icon.png"
+    },
+
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#003925"
+        }
+      ]
+    ]
+  }
+}
