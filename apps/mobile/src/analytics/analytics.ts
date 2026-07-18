@@ -50,9 +50,10 @@ export function track<E extends AnalyticsEvent>(
 /**
  * Identify a logged-in user.
  */
-export function identifyUser(userId: string, traits?: Record<string, unknown>): void {
+export function identifyUser(userId: string, traits?: Record<string, any>): void {
   try {
-    getPostHogClient().identify(userId, traits);
+    // PostHog typings are loose here; cast to any to avoid type mismatches
+    getPostHogClient().identify(userId, traits as any);
   } catch (err) {
     if (__DEV__) console.warn('[Analytics] identify() failed:', err);
   }

@@ -49,7 +49,6 @@ export function PostHogProvider({ children }: Props) {
         flushAt: 20,
         // Disable in dev to avoid polluting production data
         disabled: false,
-        captureMode: 'form',
       }}
     >
       <PostHogClientBridge />
