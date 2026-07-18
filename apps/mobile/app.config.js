@@ -31,15 +31,8 @@ export default ({ config }) => ({
     },
   },
 
-  plugins: [
-    ...(config.plugins ?? []),
-    [
-      'react-native-maps',
-      {
-        // Forces PROVIDER_GOOGLE on Android (enables satellite & traffic layers)
-        useGoogleMapsOnAndroid: true,
-      },
-    ],
+ plugins: [
+  ...(config.plugins ?? []),
     [
       'expo-location',
       {

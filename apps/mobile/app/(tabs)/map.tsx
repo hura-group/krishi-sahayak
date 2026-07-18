@@ -10,9 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MapView, { Circle, PROVIDER_GOOGLE } from 'react-native-maps';
-import { useMandiLocator }  from '../../hooks/useMandiLocator';
-import { useAuth }          from '../../src/context/AuthContext';
+import { useMandiLocator } from '../../hooks/useMandiLocator';
+import { useAuth }         from '../../src/context/AuthContext';
 import {
   MandiBottomSheet,
   MandiListItem,
@@ -21,11 +20,19 @@ import {
 } from '../../components/MandiLocator';
 import { Mandi } from '../../src/services/mandiLocatorService';
 
+// ── Lazy load maps only on native ──────────────────────────────
+const MapView     = Platform.OS !== 'web'
+  ? require('react-native-maps').default : null;
+const Circle      = Platform.OS !== 'web'
+  ? require('react-native-maps').Circle : null;
+const PROVIDER_GOOGLE = Platform.OS !== 'web'
+  ? require('react-native-maps').PROVIDER_GOOGLE : null;
+
 type ViewMode = 'map' | 'list';
 
 export default function MandiMapScreen() {
-  const { user }       = useAuth();
-  const mapRef         = useRef<MapView>(null);
+  const { user }        = useAuth();
+  const mapRef          = useRef<any>(null);
   const [mode, setMode] = useState<ViewMode>('map');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,12 +53,11 @@ export default function MandiMapScreen() {
 
   const handleMarkerPress = (mandi: Mandi) => {
     selectMandi(mandi);
-    // Animate map to centre on tapped mandi
     mapRef.current?.animateToRegion({
-      latitude:        mandi.lat - 0.012, // shift up to leave room for sheet
-      longitude:       mandi.lng,
-      latitudeDelta:   0.08,
-      longitudeDelta:  0.08,
+      latitude:       mandi.lat - 0.012,
+      longitude:      mandi.lng,
+      latitudeDelta:  0.08,
+      longitudeDelta: 0.08,
     }, 400);
   };
 
@@ -59,7 +65,20 @@ export default function MandiMapScreen() {
     if (selectedMandi) selectMandi(null);
   };
 
-  // ── Loading ──────────────────────────────────────────────────
+  // ── Web placeholder ────────────────────────────────────────
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView style={styles.centred}>
+        <Text style={styles.emptyIcon}>🗺️</Text>
+        <Text style={styles.heading}>Mandi Locator</Text>
+        <Text style={styles.subheading}>
+          Map view is available on the mobile app.
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.centred}>
@@ -69,7 +88,7 @@ export default function MandiMapScreen() {
     );
   }
 
-  // ── Error ────────────────────────────────────────────────────
+  // ── Error ──────────────────────────────────────────────────
   if (error) {
     return (
       <SafeAreaView style={styles.centred}>
@@ -83,44 +102,79 @@ export default function MandiMapScreen() {
   }
 
   const initialRegion = userLocation
-    ? { latitude: userLocation.lat, longitude: userLocation.lng, latitudeDelta: 0.9, longitudeDelta: 0.9 }
-    : { latitude: 22.2587, longitude: 71.1924, latitudeDelta: 4, longitudeDelta: 4 };
+    ? {
+        latitude:       userLocation.lat,
+        longitude:      userLocation.lng,
+        latitudeDelta:  0.9,
+        longitudeDelta: 0.9,
+      }
+    : {
+        latitude:       22.2587,
+        longitude:      71.1924,
+        latitudeDelta:  4,
+        longitudeDelta: 4,
+      };
 
   return (
     <SafeAreaView style={styles.container}>
 
-      {/* ── Top bar ─────────────────────────────────────────── */}
+      {/* ── Top bar ───────────────────────────────────────── */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.heading}>Mandi Locator</Text>
           {locationDenied
-            ? <Text style={styles.subheading}>📍 Enable location for better results</Text>
+            ? <Text style={styles.subheading}>
+                📍 Enable location for better results
+              </Text>
             : userLocation?.city
-            ? <Text style={styles.subheading}>📍 Near {userLocation.city}</Text>
+            ? <Text style={styles.subheading}>
+                📍 Near {userLocation.city}
+              </Text>
             : null}
         </View>
+
         {/* Map / List toggle */}
         <View style={styles.toggle}>
           <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'map' && styles.toggleBtnActive]}
+            style={[
+              styles.toggleBtn,
+              mode === 'map' && styles.toggleBtnActive,
+            ]}
             onPress={() => setMode('map')}
           >
-            <Text style={[styles.toggleText, mode === 'map' && styles.toggleTextActive]}>🗺 Map</Text>
+            <Text style={[
+              styles.toggleText,
+              mode === 'map' && styles.toggleTextActive,
+            ]}>
+              🗺 Map
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.toggleBtn, mode === 'list' && styles.toggleBtnActive]}
+            style={[
+              styles.toggleBtn,
+              mode === 'list' && styles.toggleBtnActive,
+            ]}
             onPress={() => setMode('list')}
           >
-            <Text style={[styles.toggleText, mode === 'list' && styles.toggleTextActive]}>☰ List</Text>
+            <Text style={[
+              styles.toggleText,
+              mode === 'list' && styles.toggleTextActive,
+            ]}>
+              ☰ List
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── Radius selector ─────────────────────────────────── */}
-      <RadiusSelector value={radiusKm} onChange={setRadiusKm} count={mandis.length} />
+      {/* ── Radius selector ───────────────────────────────── */}
+      <RadiusSelector
+        value={radiusKm}
+        onChange={setRadiusKm}
+        count={mandis.length}
+      />
 
-      {/* ── MAP VIEW ────────────────────────────────────────── */}
-      {mode === 'map' && (
+      {/* ── MAP VIEW ──────────────────────────────────────── */}
+      {mode === 'map' && MapView && (
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
@@ -131,12 +185,18 @@ export default function MandiMapScreen() {
             showsUserLocation
             showsMyLocationButton
             showsCompass={false}
-            mapPadding={{ bottom: selectedMandi ? 320 : 0, top: 0, left: 0, right: 0 }}
+            mapPadding={{
+              bottom: selectedMandi ? 320 : 0,
+              top: 0, left: 0, right: 0,
+            }}
           >
             {/* Radius circle */}
-            {userLocation && (
+            {userLocation && Circle && (
               <Circle
-                center={{ latitude: userLocation.lat, longitude: userLocation.lng }}
+                center={{
+                  latitude:  userLocation.lat,
+                  longitude: userLocation.lng,
+                }}
                 radius={radiusKm * 1000}
                 strokeColor="rgba(45,122,58,0.3)"
                 fillColor="rgba(45,122,58,0.05)"
@@ -158,8 +218,12 @@ export default function MandiMapScreen() {
           {/* Empty map state */}
           {mandis.length === 0 && !loading && (
             <View style={styles.emptyOverlay} pointerEvents="none">
-              <Text style={styles.emptyOverlayText}>No mandis found within {radiusKm} km</Text>
-              <Text style={styles.emptyOverlaySub}>Try increasing the search radius</Text>
+              <Text style={styles.emptyOverlayText}>
+                No mandis found within {radiusKm} km
+              </Text>
+              <Text style={styles.emptyOverlaySub}>
+                Try increasing the search radius
+              </Text>
             </View>
           )}
 
@@ -174,7 +238,7 @@ export default function MandiMapScreen() {
         </View>
       )}
 
-      {/* ── LIST VIEW ───────────────────────────────────────── */}
+      {/* ── LIST VIEW ─────────────────────────────────────── */}
       {mode === 'list' && (
         <FlatList
           data={mandis}
@@ -191,54 +255,100 @@ export default function MandiMapScreen() {
             <View style={styles.centred}>
               <Text style={styles.emptyIcon}>🏪</Text>
               <Text style={styles.emptyTitle}>No mandis found</Text>
-              <Text style={styles.emptySub}>Try increasing the radius above</Text>
+              <Text style={styles.emptySub}>
+                Try increasing the radius above
+              </Text>
             </View>
           }
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#2D7A3A" />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#2D7A3A"
+            />
           }
           contentContainerStyle={{ paddingBottom: 32 }}
         />
       )}
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#F5F5F5' },
+  container:    { flex: 1, backgroundColor: '#F5F5F5' },
   mapContainer: { flex: 1, position: 'relative' },
 
-  // Top bar
   topBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEEEEE',
+    flexDirection:     'row',
+    justifyContent:    'space-between',
+    alignItems:        'center',
+    paddingHorizontal: 16,
+    paddingVertical:   12,
+    backgroundColor:   '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
   heading:    { fontSize: 22, fontWeight: '800', color: '#1A1A1A' },
   subheading: { fontSize: 12, color: '#888', marginTop: 2 },
-  toggle:     { flexDirection: 'row', backgroundColor: '#F0F0F0', borderRadius: 10, padding: 3 },
-  toggleBtn:  { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  toggleBtnActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 },
-  toggleText: { fontSize: 13, color: '#888' },
+
+  toggle: {
+    flexDirection:   'row',
+    backgroundColor: '#F0F0F0',
+    borderRadius:    10,
+    padding:         3,
+  },
+  toggleBtn:       { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  toggleBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor:     '#000',
+    shadowOffset:    { width: 0, height: 1 },
+    shadowOpacity:   0.1,
+    shadowRadius:    2,
+    elevation:       2,
+  },
+  toggleText:       { fontSize: 13, color: '#888' },
   toggleTextActive: { color: '#2D7A3A', fontWeight: '700' },
 
-  // States
-  centred:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  centred: {
+    flex:           1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    padding:        40,
+  },
   loadingText: { marginTop: 12, fontSize: 14, color: '#888' },
   errorIcon:   { fontSize: 36, marginBottom: 8 },
-  errorText:   { fontSize: 14, color: '#D32F2F', textAlign: 'center', marginBottom: 16 },
-  retryBtn:    { backgroundColor: '#2D7A3A', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
-  retryText:   { color: '#fff', fontWeight: '600' },
-  emptyIcon:   { fontSize: 48, marginBottom: 12 },
-  emptyTitle:  { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
-  emptySub:    { fontSize: 13, color: '#888', marginTop: 4 },
+  errorText: {
+    fontSize:    14,
+    color:       '#D32F2F',
+    textAlign:   'center',
+    marginBottom: 16,
+  },
+  retryBtn: {
+    backgroundColor:  '#2D7A3A',
+    borderRadius:     10,
+    paddingHorizontal: 20,
+    paddingVertical:  10,
+  },
+  retryText:  { color: '#fff', fontWeight: '600' },
+  emptyIcon:  { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#1A1A1A' },
+  emptySub:   { fontSize: 13, color: '#888', marginTop: 4 },
 
-  // Map empty overlay
   emptyOverlay: {
-    position: 'absolute', bottom: 100, left: 20, right: 20,
-    backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 12,
-    padding: 14, alignItems: 'center',
+    position:        'absolute',
+    bottom:          100,
+    left:            20,
+    right:           20,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius:    12,
+    padding:         14,
+    alignItems:      'center',
   },
   emptyOverlayText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  emptyOverlaySub:  { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 3 },
+  emptyOverlaySub:  {
+    color:     'rgba(255,255,255,0.7)',
+    fontSize:  12,
+    marginTop: 3,
+  },
 });

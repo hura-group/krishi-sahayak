@@ -1,6 +1,10 @@
-import React, { memo } from 'react';
+import { Platform } from 'react-native';import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Marker } from 'react-native-maps';
+
+// Lazy-load Marker to avoid importing native-only 'react-native-maps' on web
+const Marker: any = Platform.OS !== 'web'
+  ? require('react-native-maps').Marker
+  : (props: any) => React.createElement(View, props, props.children);
 import { Mandi } from '../../src/services/mandiLocatorService';
 
 interface MandiMarkerProps {
