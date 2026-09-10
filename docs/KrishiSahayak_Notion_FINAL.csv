@@ -1,0 +1,852 @@
+"Task ID","Week","Days","Day Range","Member","Role","Module","Task Title","Task Details","Status","Review Date","Priority"
+"KS-001","1","D1–D6","Week 1","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W01 — Foundation & Environment","Figma Design System + Component Library + Next.js Setup","• Create shared Figma file
+• Define color tokens (hex for full palette: primary, secondary, error, warning, success, neutrals)
+• Set up typography scale: H1 → H2 → H3 → Body → Caption (size, weight, line-height per level)
+• Create 8pt grid layout guides
+• Export design tokens as JSON for code handoff
+• Install NativeWind v4 in Expo project
+• Create /src/theme/colors.ts, spacing.ts, typography.ts from tokens
+• Build Button component: Primary, Secondary, Ghost variants
+• Build Card component with shadow elevation
+• Export all from /src/components/index.ts
+• Initialise Next.js 14 + App Router + TypeScript in /apps/web
+• Configure Tailwind CSS 3.x + shadcn/ui
+• Set up Supabase client for web: createBrowserClient()
+• Create /packages/ui shared component library structure
+• Port Button and Card to web (Tailwind versions)","🟡 In Progress","Sat D6","High"
+"KS-002","1","D1–D6","Week 1","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W01 — Foundation & Environment","Monorepo + Supabase Schema + Edge Functions + All API Keys","• Create GitHub org: hura-group — invite all 3 members as owners
+• Initialise pnpm monorepo: /apps/mobile (Expo SDK 51) + /apps/web (Next.js 14)
+• Initialise Supabase project — copy service role key + anon key to .env
+• Install Supabase CLI, run supabase init
+• Write all SQL migration files: users, farms, market_prices, weather_cache, news_articles, govt_schemes, pest_detections, marketplace_listings, community_posts, messages, expense_records, notifications
+• Enable RLS on ALL tables from day one
+• Create service role + anon role RLS policies
+• Write seed.sql: crop list (50+ crops) + govt schemes placeholder + weather tips + disease treatments
+• Run migrations: supabase db push
+• Create Edge Function: price-cache (fetch Agmarknet hourly via pg_cron)
+• Create Edge Function: news-fetch (fetch NewsAPI + RSS every 2hr)
+• Run: supabase gen types typescript > src/types/supabase.ts
+• Register + test ALL external APIs via Postman: OpenWeatherMap, Plant.id, Twilio Verify, NewsAPI — store all keys in Supabase Vault
+• Configure Supabase Auth: enable Phone OTP, configure Twilio Verify integration
+• Write AuthContext.tsx + useAuth() hook
+• Test OTP flow end-to-end via Postman","🟡 In Progress","Sat D6","High"
+"KS-003","1","D1–D6","Week 1","Harsh (C)","QA · Research · Full-Stack Support","W01 — Foundation & Environment","Competitor Research + Dev Environment + CI/CD + Analytics","• Install and audit all 3 competitor apps: DeHaat, BigHaat, AgriBazaar
+• Document full UX flows (onboarding → home → key features) for each
+• Identify feature gaps vs KrishiSahayak vision
+• Create competitor comparison spreadsheet (feature × competitor matrix with ✅/⚠️/❌)
+• Draft KrishiSahayak unique differentiators document in Notion (15 differentiators)
+• Set up Notion sprint board with all 16 weeks (import this CSV)
+• Write CONTRIBUTING.md: branch naming, PR template, Conventional Commit format
+• Create .github/PULL_REQUEST_TEMPLATE.md
+• Configure ESLint (eslint-config-expo) + Prettier (.prettierrc)
+• Add Husky pre-commit hooks with lint-staged
+• Create README.md for /apps/mobile and /apps/web
+• Create .github/workflows/ci.yml: checkout → pnpm install → ESLint → TypeScript typecheck → Jest
+• Create .github/workflows/build.yml: EAS Build trigger on push to main
+• Set branch protection on main: require PR + 1 review
+• Test CI pipeline with dummy PR — confirm green
+• Create PostHog project, install React Native SDK
+• Define 15 core tracking events and create typed track() helper in /src/utils/analytics.ts
+• Test event firing in emulator — confirm in PostHog dashboard
+• Document all color tokens, typography, and component props in Notion","🟡 In Progress","Sat D6","High"
+"KS-004","1","D1–D6","Week 1","All Members (Kartik + Umang + Harsh)","Full Team Sync","W01 — Foundation & Environment","Week 1 Saturday Sync & Review","✅ All 3 members can run apps locally | All API keys working | CI pipeline green | Supabase schema live | Notion board shared","🟡 In Progress","Sat D6","Critical"
+"KS-005","2","D7–D12","Week 2","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W02 — Auth & Onboarding","Splash Screen + Language Picker + Walkthrough + OTP + Profile + Farm Location + Exit Screen","• Build animated Lottie splash screen (3–4 sec, crops + sunrise, Expo SplashScreen API)
+• Build language selection screen: 6 language cards with flag icons + native script labels (English, हिंदी, ગુજરાતી, मराठी, తెలుగు, தமிழ்)
+• Animated card selection: scale + colour border + haptic feedback (Haptics.impactAsync)
+• Store language in MMKV, navigate to walkthrough on Continue
+• Build 3-screen illustrated walkthrough (Reanimated FadeInRight, progress dots, skip button)
+• Build OTP login screen: phone input + libphonenumber-js validation + country code selector (+91 default)
+• Build OTP 6-box input component: auto-advance, clipboard paste detection, numeric keyboard
+• Resend OTP: 60-second countdown timer
+• Success checkmark Lottie animation on verify
+• Build Profile Setup Screen 1: name + photo upload (Expo ImagePicker) + state/district dropdown + react-hook-form + zod
+• Build Profile Setup Screen 2: land size slider (1–500 acres) + soil type icon cards + irrigation type icon cards + crop multi-select grid with animated highlight ring
+• Build Farm Location screen: react-native-maps + GPS auto-detect + manual pin drop + reverse geocoding
+• Build animated exit screen + Android BackHandler + bottom sheet warning (Stay / Exit with 3s countdown)
+• Add haptic feedback on exit warning appearance","⬜ To Do","Sat D12","High"
+"KS-006","2","D7–D12","Week 2","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W02 — Auth & Onboarding","Auth Backend + OTP + Profile API + Farm Data API","• Implement signInWithOtp(phone) + verifyOtp(phone, token) in authService.ts
+• Postgres trigger: auto-insert users row on first login
+• OTP expiry: 10 minutes, rate limit: max 5 OTP requests per phone per hour
+• Custom JWT claims Edge Function: add role field (farmer/expert/admin)
+• AuthProvider context + session persist in expo-secure-store (NOT AsyncStorage)
+• Auto-refresh JWT on app foreground (AppState change listener)
+• Handle expired session → clear storage → redirect to login
+• Build upsert_user_profile RPC
+• Avatar upload: compress → Supabase Storage (users/avatars/{user_id}.jpg) → return public URL
+• Create get_user_profile(user_id) RPC (joined user + farm)
+• RLS: users.SELECT and UPDATE restricted to auth.uid() = id
+• Build insert_farm RPC: (user_id, lat, lng, address, size_acres, soil_type, irrigation_type, crops[])
+• Create get_farm_by_user_id(user_id): supports multi-farm from day one
+• Build get_user_with_farm(user_id): single JOIN query
+• End-to-end test: signup → complete profile → verify users + farms rows in Supabase Studio","⬜ To Do","Sat D12","High"
+"KS-007","2","D7–D12","Week 2","Harsh (C)","QA · Research · Full-Stack Support","W02 — Auth & Onboarding","Farmer Interviews + i18n Setup + OTP Screen QA Support","• Conduct 3 farmer interviews (in-person or phone) — document pain points verbatim
+• Create 3 user personas: small farmer (<5 acres), mid-size (5–25 acres), expert agronomist
+• Map pain points → features → validation checklist
+• Write UAT test scripts (10-task script for onboarding flow)
+• Save all findings in Notion under 'User Research'
+• Install react-i18next + i18next
+• Create en.json (100+ base strings covering all onboarding + home screens)
+• Create hi.json (Hindi translations — use DeepL + manual review for agri terms)
+• Create gu.json (Gujarati translations)
+• Wire i18n to language selection Zustand store
+• Test: switch language → all visible strings update instantly without restart
+• QA support for OTP 6-box component: auto-advance, clipboard paste, shake on error
+• Test complete OTP flow on physical Android device (SMS delivery test — not emulator)","⬜ To Do","Sat D12","High"
+"KS-008","2","D7–D12","Week 2","All Members (Kartik + Umang + Harsh)","Full Team Sync","W02 — Auth & Onboarding","Week 2 Saturday Sync & Review","✅ Auth flow complete on physical device | Profile saves to Supabase | Language switching works | Exit screen + back handler tested","⬜ To Do","Sat D12","Critical"
+"KS-009","3","D13–D18","Week 3","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W03 — Dashboard & Navigation","Bottom Nav + Home Screen (All Sections) + FAB + Pull-to-Refresh + Profile Drawer + Parallax","• Build 5-tab bottom nav: Home, Market, Community, AI Scan, Profile
+• Lottie/SVG morph animations for each tab icon (inactive → active)
+• Active tab: filled icon + label + green indicator dot + haptic on switch
+• Smooth slide transition between tabs (Reanimated)
+• Home top section: dynamic greeting (Good Morning/Afternoon/Evening + first name), date/day in user's language, weather summary widget, time-based sunrise gradient
+• Home middle: live mandi price ticker (horizontal FlatList, 60s auto-refresh, green/red arrows + %)
+• Quick action 2×3 grid: Weather/Market/Scan/Marketplace/News/Schemes — press ripple + navigate
+• Crop health summary: horizontal scroll cards per farm crop (name + icon + days planted + status ring)
+• Floating AI FAB: bottom-right, glowing green ring pulse loop, tap → pest scan, long-press → quick sheet
+• Pull-to-refresh: custom Lottie (sun rising from soil) + 'Updated just now' toast on complete
+• Header bar: logo + notification bell (unread badge) + avatar
+• Avatar tap → slide-in profile drawer (photo, name, farm, settings, sign out)
+• Sign out: clear SecureStore + MMKV + navigate to splash
+• Parallax scroll header using Reanimated useAnimatedScrollHandler","⬜ To Do","Sat D18","High"
+"KS-010","3","D13–D18","Week 3","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W03 — Dashboard & Navigation","Dashboard RPC + Dark Mode + Realtime Subscriptions + Reconnection","• Create get_dashboard_data(user_id) RPC: single call returns user profile + latest weather (cached) + top 5 mandi prices personalised to user's crops + unread notification count — cache 10 min, response < 400ms
+• Create ThemeContext: full light + dark colour palettes matching Figma tokens
+• Detect system dark mode via Appearance API
+• Allow manual override stored in MMKV
+• Test ALL home screen components in dark mode
+• Subscribe to market_prices table INSERT/UPDATE via Supabase Realtime
+• Subscribe to notifications channel for logged-in user
+• Reconnection logic: re-subscribe when app returns to foreground after WebSocket drop
+• Test real-time: insert market_prices row via SQL editor → ticker updates within 500ms","⬜ To Do","Sat D18","High"
+"KS-011","3","D13–D18","Week 3","Harsh (C)","QA · Research · Full-Stack Support","W03 — Dashboard & Navigation","Notification Bell + Skeleton States + Error States + Offline State","• Notifications table RLS: user reads only their own rows
+• mark_notification_read(id) + mark_all_read(user_id) mutations
+• Real-time unread count badge on bell icon
+• Test: insert notification via SQL → badge increments without refresh
+• Build skeleton screen for ALL home sections using react-native-skeleton-placeholder
+• Skeleton shapes MUST match final content layout exactly
+• Shimmer linear gradient animation on all skeletons
+• Smooth crossfade skeleton → loaded content (Reanimated FadeIn 300ms)
+• Error state: icon + message + Retry button for each section
+• Offline state: show cached data with 'Last updated X min ago' grey badge","⬜ To Do","Sat D18","High"
+"KS-012","3","D13–D18","Week 3","All Members (Kartik + Umang + Harsh)","Full Team Sync","W03 — Dashboard & Navigation","Week 3 Saturday Sync & Review","✅ Home screen with real data | Dark mode on all sections | Real-time price ticker | Navigation all tabs | Skeleton states everywhere","⬜ To Do","Sat D18","Critical"
+"KS-013","4","D19–D24","Week 4","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W04 — Real-Time Weather Module","Weather Screen + Hourly Forecast + 7-Day Forecast + Animated Backgrounds + Rain Ring + Web Page","• Full-screen weather: animated gradient bg (colour by condition)
+• Current temperature at 80px font + Lottie condition icon + condition label
+• 2×2 info card grid: Feels Like, Humidity, Wind Speed, UV Index
+• Location pill with edit icon
+• Hourly 24hr horizontal FlatList: time + icon + temp + rain % per hour
+• Highlight current hour card with coloured border ring
+• Sunrise/Sunset pills inline in hourly scroll row
+• 7-day forecast vertical list: day name + icon + high/low + rain probability bar + temp gradient bar
+• 'Today' row highlighted with light green background
+• Rain probability circular animated ring (fills on mount, colour-coded: green/yellow/blue)
+• 'Rain expected at [time]' row when probability > 60%
+• Animated weather backgrounds: sunny (gold-blue), rainy (dark blue-grey), night (navy + stars), storm (lightning flash), cloudy (floating cloud Lottie)
+• Build /weather page in Next.js (SSR), recharts temperature graph, responsive layout, Lighthouse > 90","⬜ To Do","Sat D24","High"
+"KS-014","4","D19–D24","Week 4","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W04 — Real-Time Weather Module","OpenWeatherMap Integration + GPS + Cache + Multi-Location + Error Handling","• Fetch /weather (current) + /forecast (5-day/3-hour) endpoints
+• Parse + store in weather_cache table: lat, lng, data JSONB, fetched_at
+• Create get_weather(lat, lng) RPC: returns current + 48hr hourly + 7-day daily
+• Edge Function refreshes cache every 30 min via pg_cron
+• Handle all API errors: 404 (location not found), 401 (bad key), 429 (rate limit), 503 (outage)
+• Request Expo Location foreground permission on weather screen open
+• Reverse geocode coordinates via Google Geocoding API → city/village name
+• Fallback chain: GPS denied → profile district → prompt to set location
+• Cache last GPS coordinates in MMKV
+• Multi-location search: Google Places Autocomplete (India restricted), store last 5 in MMKV
+• 'My Farm' always first tab; second tab for last searched location
+• TanStack Query refetchInterval: 30 min (foreground only)
+• 'Live' green badge < 5 min, 'Updated X min ago' when stale, retry banner > 3hr old
+• Graceful offline fallback: serve last cached data with 'Using cached data' banner
+• Auto-retry exponential backoff: 2min → 4min → 8min
+• Log API errors to Sentry; alert when error rate > 5% in 5-min window","⬜ To Do","Sat D24","High"
+"KS-015","4","D19–D24","Week 4","Harsh (C)","QA · Research · Full-Stack Support","W04 — Real-Time Weather Module","Weather Translations + Crop Tips + Alert System + Unit Tests","• Map ALL OWM condition codes (200–804) to Hindi strings in hi.json
+• Map same codes to Gujarati strings in gu.json
+• Map condition codes to Lottie animation filenames (sunny.json, rainy.json, etc.)
+• Create weather_crop_tips table: seed 30+ actionable farming tips keyed to weather conditions
+• Match today's dominant condition → fetch tip in user's language → display below 7-day forecast
+• Rotate 3 tips per condition for engagement
+• Weather alert system: Edge Function detects severe conditions (storm, heatwave > 40°C, heavy rain > 80%, fog)
+• On severe: insert into notifications table → FCM push to user's farm location
+• Show red alert banner on home screen (dismissable)
+• Alert message localised in user's preferred language
+• Jest unit tests: K→C conversion, date formatting, condition code→string mapping, cache age logic, GPS fallback","⬜ To Do","Sat D24","High"
+"KS-016","4","D19–D24","Week 4","All Members (Kartik + Umang + Harsh)","Full Team Sync","W04 — Real-Time Weather Module","Week 4 Saturday Sync & Review","✅ Weather screen with live OWM data | Hourly + 7-day working | GPS auto-detects location | Alert system triggers FCM | All error/offline states | Dark mode | Unit tests passing","⬜ To Do","Sat D24","Critical"
+"KS-017","5","D25–D30","Week 5","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W05 — Live Market Price Module","Market Screen + Price Cards + Trend Chart + Flash Animation + Dark Mode + Web Page","• Market screen header: title + location filter pill + 'Live' badge with pulse dot
+• Horizontal scrollable filter chips: state + commodity
+• FlatList of price cards sorted by user's active crops first
+• Price card: commodity name (large bold) + mandi name + modal price (₹ Indian format) + price range bar + delta badge (▲/▼ + %)
+• Favourite star toggle (saves to watchlist)
+• Tap card → price detail screen with 7-day trend chart
+• Victory Native LineChart: animated draw-in, tap tooltip with date + price
+• Chart adapts to dark mode
+• Real-time flash animation: green flash for price up, red flash for price down (Reanimated)
+• Animated price number countup/countdown
+• 'New' badge on freshly inserted mandi records
+• Subtle haptic on > 5% price move
+• Build /market page in Next.js (ISR revalidate 60s): sortable table + CSV export + SEO meta tags","⬜ To Do","Sat D30","High"
+"KS-018","5","D25–D30","Week 5","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W05 — Live Market Price Module","Agmarknet + eNAM Integration + Price Trends + Alerts + Data Quality","• Register at agmarknet.gov.in → get API credentials
+• Write fetch-mandi-prices Edge Function: fetch + parse Agmarknet, normalise to market_prices schema
+• Run via pg_cron every 1 hour; store last 7 days per commodity/mandi
+• Register at enam.gov.in → write fetch-enam-prices Edge Function
+• Merge Agmarknet + eNAM: deduplicate by (commodity + mandi + date); add source column
+• eNAM live auction: set is_auction_live = true → show 'Auction in Progress' orange badge
+• Price trend calculation: daily % change, 7-day avg, 30-day avg → market_stats table
+• get_price_trend(commodity, state, days) RPC → returns [{date, modal_price}] for chart
+• Data quality validator: price must be > 0 and < ₹1,00,000; flag outliers (> 3× 30-day avg) as suspicious_data = true → log to Sentry, exclude from display
+• TanStack Query refetchInterval: 60s on market screen
+• Supabase Realtime subscription: market_prices table changes → update ticker without pull-to-refresh
+• Price alert UI: user sets threshold → price_alerts table → Edge Function checks after every fetch → FCM push in < 30 sec
+• Alert history screen: last 30 triggered alerts","⬜ To Do","Sat D30","High"
+"KS-019","5","D25–D30","Week 5","Harsh (C)","QA · Research · Full-Stack Support","W05 — Live Market Price Module","Filters + Mandi Map + Web Page + Unit & Integration Tests","• Static JSON: all 28 states + 8 UTs; 50+ commodities with EN/HI/GU names
+• Default filter: user's state + active crops from farms table
+• Persist last filter in MMKV; restore on reopen
+• Show result count: 'Found 143 listings in Gujarat'
+• Google Maps embedded: markers per mandi in user's district
+• Tap marker → bottom sheet: mandi name, address, hours, top 3 prices, distance from farm, 'Get Directions'
+• Jest unit tests: filter SQL correctness, % change calculation (edge: zero yesterday), alert trigger boundary conditions
+• Integration test: Edge Function → DB insert → app TanStack Query updates
+• Simulate Agmarknet API downtime → confirm cached data shown without crash","⬜ To Do","Sat D30","High"
+"KS-020","5","D25–D30","Week 5","All Members (Kartik + Umang + Harsh)","Full Team Sync","W05 — Live Market Price Module","Week 5 Saturday Sync & Review","✅ Market screen with real Agmarknet + eNAM data | Real-time auto-refresh | 7-day trend chart | Price alerts + FCM push | Mandi map | Web page live | All tests passing","⬜ To Do","Sat D30","Critical"
+"KS-021","6","D31–D36","Week 6","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W06 — News Feed & Govt Schemes","News Feed + Article WebView + Schemes Screen + Breaking News Banner","• News feed: FlatList + category chips: All/Weather/Policy/Market/Technology/Schemes
+• Article card: Expo Image 16:9 thumbnail (blurhash placeholder) + headline (2 lines max) + source logo + time ago + colour-coded category badge
+• Skeleton loader on initial fetch (3 visible skeleton cards)
+• Pull-to-refresh
+• Open article in react-native-webview with custom toolbar (back/forward/share/bookmark)
+• Reading time estimate in toolbar (word count / 200 wpm)
+• Share: native share sheet (WhatsApp, Copy Link, Others)
+• Bookmark: toggle MMKV immediately + sync to user_bookmarks table
+• Govt schemes screen: searchable list + category filter (Subsidy/Insurance/Loan/Training/Equipment)
+• Scheme card: name + benefit amount (highlighted) + 1-line eligibility summary + deadline
+• 'Apply Now' → WebView to official portal
+• 'Eligible for You' section pinned at top
+• Breaking news banner: full-width red-bordered + pulsing dot + bold headline + 'Read Now' CTA + dismiss (stores in MMKV)","⬜ To Do","Sat D36","High"
+"KS-022","6","D31–D36","Week 6","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W06 — News Feed & Govt Schemes","NewsAPI + RSS Edge Function + Schemes DB + Push Notifications","• Edge Function: fetch NewsAPI (query: 'farmer OR agriculture OR krishi India') + RSS: Krishi Jagran + Gaon Connection
+• Merge + deduplicate by URL → normalise to news_articles schema (title, summary, image_url, source_name, category, published_at, url)
+• pg_cron: run every 2 hours, store last 100 articles
+• Resize thumbnails to 400×225px in Supabase Storage (CDN)
+• Real-time: subscribe to news_articles INSERT → show 'X new articles — tap to refresh' banner if > 3 new
+• Seed 50+ real govt schemes: PM-KISAN, PMFBY, KCC, Soil Health Card, PM Kusum, MIDH, PKVY, etc.
+• govt_schemes table: title, description, eligibility_json, benefit_amount, state[], apply_url, deadline, category
+• Create get_schemes_for_user(user_id) RPC: filter by state + crop match
+• RLS: all authenticated users can SELECT schemes
+• Breaking news push: when is_breaking = true → Edge Function fan-out FCM batch (500 tokens/request) targeted by user.state
+• Test: insert breaking article via SQL → FCM push received in < 30 seconds","⬜ To Do","Sat D36","High"
+"KS-023","6","D31–D36","Week 6","Harsh (C)","QA · Research · Full-Stack Support","W06 — News Feed & Govt Schemes","Auto-Translation + Eligibility Engine + SEO Pages + Tests + Accessibility","• For English articles: call Claude API → generate summary_hi + summary_gu (2 sentences each) → store in news_articles
+• Hindi-source articles: keep original title/summary
+• Display summary in user's active language; full article in WebView
+• Test translation quality on 10 articles with native speaker review
+• Eligibility engine: parse user profile (state, land_size, crops[], irrigation_type) → evaluate each scheme's eligibility_json → tag Eligible ✅ / May Be Eligible ⚠️ / Not Eligible ❌ + reason string
+• Sort: Eligible first → May Be Eligible → Not Eligible
+• Build Next.js schemes pages: /schemes (SSG, revalidate weekly) + /schemes/[slug] per scheme
+• Meta title + description + OG image per scheme page
+• Submit /schemes/* to Google Search Console
+• WCAG AA: all text 4.5:1 contrast ratio, Dynamic Type support, font size control S/M/L
+• Unit tests: eligibility matching (all 4 outcomes), article deduplication, RSS fetch integration
+• Accessibility audit: VoiceOver/TalkBack on news cards","⬜ To Do","Sat D36","High"
+"KS-024","6","D31–D36","Week 6","All Members (Kartik + Umang + Harsh)","Full Team Sync","W06 — News Feed & Govt Schemes","Week 6 Saturday Sync & Review","✅ News feed with real articles | Hindi + Gujarati summaries working | Schemes with eligibility tags | Breaking news FCM push | Schemes web pages indexed | Dark mode + accessibility","⬜ To Do","Sat D36","Critical"
+"KS-025","7","D37–D42","Week 7","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W07 — AI Pest Detection","Camera UI + Scanning Animation + Results Screen + Share Card + Dark Mode","• Full-screen Expo Camera with permission request on first open
+• 'Point at the affected crop area' instruction label at top
+• Animated corner bracket overlay (Reanimated, glow effect)
+• Shutter button: 72px green circle at bottom-centre
+• Gallery icon: open Expo ImagePicker
+• On capture: transition to scanning overlay
+• Scanning animation: pulsing green ring (Reanimated withRepeat) + particle floats + progress bar 0→95%
+• 'Analysing with AI...' typewriter text effect
+• Smooth crossfade to Results screen on API response
+• Results: disease name (24px bold) + animated confidence ring (fills on mount, green/yellow/red) + disease comparison card (user photo left + reference right) + expandable description
+• Treatment sections: Organic (leaf icon) + Chemical (flask icon) + Prevention (shield icon)
+• 'Consult Expert' stub button
+• 'Share Result' → react-native-view-shot → branded PNG card (white bg, KS logo, disease name, confidence, date)
+• First-use guide modal: 3-step illustrated tips, 5s auto-close, MMKV seen flag
+• Dark mode on all screens; share card always light background","⬜ To Do","Sat D42","High"
+"KS-026","7","D37–D42","Week 7","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W07 — AI Pest Detection","Plant.id API + Disease Treatments DB + Offline Queue + Rate Limiting","• Write detectCropDisease(imageBase64) in /src/services/pestService.ts
+• POST to Plant.id /health_assessment: parse disease name, probability, description, treatment suggestions
+• Handle healthy plant (is_healthy: true) → 'No disease detected 🌾'
+• Handle API errors: 429 (rate limit), 503 (outage) → 'Detection unavailable, try again'
+• Create disease_treatments table: seed 30 common Indian crop diseases with organic + chemical + prevention per disease
+• Match logic: Plant.id disease name → local DB first, fall back to Plant.id text
+• Add disease_name_hi + disease_name_gu columns for localised display
+• Offline queue: no internet → save to WatermelonDB LocalDraft → auto-submit on reconnect → notify user
+• Show 'Pending' badge on queued items in history
+• Rate limiting: track daily usage in pest_api_usage table; Sentry alert at > 80/day; queue if limit reached","⬜ To Do","Sat D42","High"
+"KS-027","7","D37–D42","Week 7","Harsh (C)","QA · Research · Full-Stack Support","W07 — AI Pest Detection","Table Setup + Image Optimisation + History Screen + Analytics + Tests","• Create pest_detections table: id, user_id, image_url, detected_disease, confidence_score, recommendation, crop_name, created_at
+• Supabase Storage bucket: 'pest-detections' (auth write, public read)
+• RLS: SELECT + DELETE restricted to auth.uid() = user_id
+• Composite index on (user_id, created_at DESC)
+• Image optimisation before upload: Expo ImageManipulator → 800×600, JPEG 85%
+• Validate: minimum 100KB (too small = bad detection), maximum 5MB
+• Brightness check: warn if too dark ('Try in better lighting')
+• Detection history screen: SectionList by month, thumbnail + disease + confidence + date, delete with Storage cleanup
+• PostHog funnel: pest_scan_started → pest_scan_photo_taken → pest_scan_completed (with disease_name property) → pest_scan_failed
+• Unit tests: image resize, disease lookup, full flow integration, offline queue (airplane mode), API error mock","⬜ To Do","Sat D42","High"
+"KS-028","7","D37–D42","Week 7","All Members (Kartik + Umang + Harsh)","Full Team Sync","W07 — AI Pest Detection","Week 7 Saturday Sync & Review","✅ Camera → Plant.id → results on real device | Treatment recommendations | Detection history | Offline queue auto-submits | Analytics funnel | All error states","⬜ To Do","Sat D42","Critical"
+"KS-029","8","D43–D48","Week 8","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W08 — Marketplace","Marketplace UI + Listing Detail + Equipment Rental + My Listings + Web Pages","• Marketplace screen: 3-tab bar (Buy & Sell / Equipment Rental / My Listings)
+• Product card 2-column grid: thumbnail + title + price + location + days ago
+• Category filter horizontal bar: Seeds/Produce/Equipment/Inputs/Livestock
+• Search bar with 300ms debounce
+• 'Post Listing' FAB (bottom right, green)
+• Listing detail: full-screen image carousel + seller info card (avatar, name, 'Member since', Verified badge)
+• Price in large bold with Indian number formatting (₹1,50,000)
+• Location + approximate distance from farm (e.g. '12 km away')
+• 'Contact Seller' CTA → open P2P chat
+• Equipment rental tab: per-day/per-acre pricing + availability calendar (blocked dates in red)
+• 'Request to Rent' → date range picker
+• Create listing multi-step form: Step 1 Photos (up to 5, multi-select) → Step 2 Details → Step 3 Price + Location → Preview → Publish
+• My listings: active/sold/expired filter + views count + enquiries count + edit/sold/delete
+• Listing card press animation: scale 0.97 + shadow increase
+• Build /marketplace (ISR 60s) + /marketplace/[id] pages with OG images + 'Download App' CTA","⬜ To Do","Sat D48","High"
+"KS-030","8","D43–D48","Week 8","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W08 — Marketplace","marketplace_listings Table + Image Pipeline + Rental System + Analytics","• marketplace_listings schema: id, user_id, title, description, category, price, price_unit, images TEXT[], state, district, status, views_count, available_until, created_at
+• RLS: anyone reads active listings; owner updates/deletes own
+• get_marketplace_listings(filters) RPC with cursor pagination
+• pg_trgm GIN index on title + description for full-text search
+• Image pipeline: Expo ImageManipulator → resize to 1200×900 (full) + 400×300 (thumb) → Storage (marketplace/{listing_id}/)
+• Delete listing → delete all associated Storage images
+• rental_requests table: id, equipment_listing_id, requester_id, owner_id, start_date, end_date, status, message
+• Owner receives in-app + FCM push on new request
+• Double-booking prevention: SQL date overlap check before accepting
+• Rental status updates via Supabase Realtime
+• View counter: Postgres trigger increments views_count (no self-views)
+• PostHog: marketplace_listing_viewed, marketplace_listing_posted, marketplace_contact_tapped
+• Nightly cron: mark listings past available_until as expired
+• push notification 3 days before expiry","⬜ To Do","Sat D48","High"
+"KS-031","8","D43–D48","Week 8","Harsh (C)","QA · Research · Full-Stack Support","W08 — Marketplace","Search + Filters + Report Listing + Create Form + Tests","• Listing search: full-text via pg_trgm, ranked results
+• Filters: category dropdown + state dropdown + price range dual slider
+• Sort: Newest / Lowest Price / Nearest (distance from user farm)
+• Persist last filter in MMKV, show result count
+• 'Trending Searches': top 5 from search_trends table shown when search bar is focused
+• Report listing: kebab menu → reason chips (Spam/Fake/Inappropriate/Duplicate) → listing_reports table → auto-hide if > 5 reports
+• Unit tests: image resize pipeline, rental date overlap (no overlap / partial / exact / contained)
+• Integration tests: create listing → search → view → report; rental request flow (request → owner notified → accept → status updates)
+• Regression: all filter combinations return correct counts","⬜ To Do","Sat D48","High"
+"KS-032","8","D43–D48","Week 8","All Members (Kartik + Umang + Harsh)","Full Team Sync","W08 — Marketplace","Week 8 Saturday Sync & Review","✅ Buy/sell + equipment rental live | Create listing with images | Search + filters working | Rental request flow with Realtime | My listings management | Web pages on Vercel","⬜ To Do","Sat D48","Critical"
+"KS-033","9","D49–D54","Week 9","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W09 — Community & Real-Time Chat","Community Feed + Create Post + Post Detail + Chat Bubbles + Conversation List + Dark Mode","• Community screen: 3 tabs (Feed / Trending / My Posts)
+• Post card: avatar + name + verified badge + timestamp + content (3-line truncated) + image grid + like count + comment count + share
+• Category chips: Question/Tips/Success Story/Alert/Market Talk
+• 'New Post' FAB
+• Create post: 500-char textarea + live counter + up to 3 image attachments + category chip + optional location tag + Preview → Post + success animation
+• New post real-time: FadeInDown slide-in animation when Realtime INSERT arrives
+• Like animation: heart icon scale burst + count increments (optimistic)
+• Post detail: full content + sticky header + KeyboardAvoidingView comment input bar + @mention on reply
+• Trending tab: most liked posts in last 24 hours
+• 'Top Farmers This Week' mini-leaderboard widget (3 rows) on community screen
+• WhatsApp-style chat bubbles: right (green, sender) / left (white/dark, receiver) + timestamps + single grey tick → double grey → double blue ticks
+• Typing indicator: 3-dot animation via Supabase Presence channel
+• Image messages: tap thumbnail → full-screen viewer
+• Conversation list: sorted by last message time, unread count badge, search by name
+• Dark mode: all chat bubbles + community cards","⬜ To Do","Sat D54","High"
+"KS-034","9","D49–D54","Week 9","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W09 — Community & Real-Time Chat","community_posts Realtime + Comments + P2P Chat Infrastructure + Security","• community_posts schema: id, user_id, content, images[], category, likes_count, comments_count, is_pinned, is_admin_verified, created_at
+• Enable Supabase Realtime on community_posts INSERT
+• RLS: all authenticated read; user insert/update/delete own
+• community_comments: id, post_id, user_id, content, likes_count, reply_to_id (1-level nested), created_at
+• Real-time subscription per open post (channel per post_id)
+• Load 20 comments initially + 'Load more' button
+• conversations table: id, participant_ids UUID[] (2 users)
+• messages table: id, conversation_id, sender_id, content, type (text/image), is_read, created_at
+• Realtime subscription per conversation_id
+• Read receipts: UPDATE messages SET is_read = true when recipient opens conversation
+• FCM push when new message arrives (app backgrounded/killed)
+• RLS: conversations — user reads only where auth.uid() = ANY(participant_ids)
+• Rate limit: max 20 messages/minute per user (Edge Function check)
+• Block user: block_list table","⬜ To Do","Sat D54","High"
+"KS-035","9","D49–D54","Week 9","Harsh (C)","QA · Research · Full-Stack Support","W09 — Community & Real-Time Chat","Like System + Expert Badges + Moderation + Typing Indicator + Tests","• post_likes table: post_id + user_id (UNIQUE constraint)
+• toggle_post_like RPC: INSERT if not exists, DELETE if exists
+• Postgres trigger: atomically update community_posts.likes_count on INSERT/DELETE
+• Optimistic UI: immediately show liked, revert on API failure
+• Expert badge: users.is_verified_expert = true → green 'Expert 🌿' chip on all posts + comments
+• Admin badge: users.is_admin = true → blue 'Admin' chip
+• Post report: report_post(post_id, reason) RPC → post_reports table → auto-blur if > 3 reports → admin can pin (is_pinned = true)
+• Integration tests: post → real-time in another user's feed within 500ms; like → count updates for both users; message → FCM push to recipient
+• Unit test: unread message count calculation
+• Stress test: 10 concurrent Realtime connections — all receive updates","⬜ To Do","Sat D54","High"
+"KS-036","9","D49–D54","Week 9","All Members (Kartik + Umang + Harsh)","Full Team Sync","W09 — Community & Real-Time Chat","Week 9 Saturday Sync & Review","✅ Real-time community feed | Likes + comments working | P2P chat with read receipts | Typing indicator | Expert badges | Push notifications | All tests passing","⬜ To Do","Sat D54","Critical"
+"KS-037","10","D55–D60","Week 10","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W10 — Expense Tracker & Gamification","Expense Tracker + Charts + Leaderboard UI + Streak Widget + Dark Mode","• Expense tracker: monthly calendar header (navigate months) + SectionList by date + each row (category icon + description + farm tag + ₹ amount)
+• Summary card: 'Total this month: ₹12,450' + progress vs last month
+• Category donut chart (Victory Native): % breakdown by category
+• Monthly bar chart: last 6 months animated bars
+• 'Biggest Expense' insight card + 'vs Last Month' % card
+• Leaderboard: 2 tabs (Weekly/Monthly) + top 50 ranked list (rank badge + avatar + name + state + XP + streak days)
+• Current user row: sticky at bottom if outside top 50, light green highlight
+• Rank 1 gold trophy + crown Lottie; rank 2 silver; rank 3 bronze
+• Animated number roll when user's rank changes
+• Confetti burst when user enters top 10 for first time
+• 'Share My Rank' button: generates share text
+• State filter: All India or specific state
+• Daily streak widget on home: fire icon + count, tap → streak calendar
+• Streak milestone animations: 7/30/100 days
+• Dark mode: charts with dark grid lines, leaderboard dark grey rows","⬜ To Do","Sat D60","High"
+"KS-038","10","D55–D60","Week 10","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W10 — Expense Tracker & Gamification","expense_records Table + XP System + Streak Edge Function + Leaderboard Snapshots","• expense_records schema: id, user_id, farm_id, category (8 types), amount, description, recorded_date, payment_method, receipt_url, is_recurring, created_at
+• RLS: user SELECT/INSERT/UPDATE/DELETE own records only
+• get_expense_summary(user_id, month, year) RPC: returns {total, by_category, monthly_trend last 6m}
+• Index on (user_id, recorded_date DESC)
+• generate_expense_pdf(user_id, month, year) Edge Function: PDF with header + category totals + itemised list → download URL
+• xp_events table: define 8 events with XP values (daily_login+5, pest_scan+20, post+10, comment+5, listing+15, price_alert+5, expense+5, 7-day_streak_bonus+50)
+• Postgres trigger: on xp_events INSERT → atomically add XP to users.xp_points
+• Streak Edge Function: midnight IST daily → if user opened app today increment streak_days else reset to 0
+• Deduplication: daily_login XP once per IST calendar day
+• leaderboard_entries: weekly + monthly snapshots, recalculate every Sunday midnight IST
+• Index on (period, xp_score DESC); ROW_NUMBER() window function for user's rank; response < 200ms
+• XP edge cases: post delete → deduct XP; timezone all IST","⬜ To Do","Sat D60","High"
+"KS-039","10","D55–D60","Week 10","Harsh (C)","QA · Research · Full-Stack Support","W10 — Expense Tracker & Gamification","Add Expense Form + PDF Export + Achievement Badges + Gamification Hooks + Tests","• Add expense quick form: numpad amount + 2×4 category icon grid + optional description + datepicker + farm selector + receipt photo upload
+• Submit → success checkmark animation → back to list
+• Recurring expense option: mark as is_recurring, auto-create next month
+• PDF export: 'Export PDF' button → download → share via WhatsApp/email/gallery
+• 15 achievement badges defined: First Scan, Market Watcher, Community Champion, Green Streak (7d), On Fire (30d), Top Seller, etc.
+• user_badges table; Edge Function awards after relevant actions; confetti + push notification on new badge
+• Badge grid in profile screen
+• Gamification hooks: 'Almost there! 8 XP to rank #44' banner on home; weekly Sunday push 'You earned 120 XP. Rank #52→#48!'
+• Tier progress bar in profile: Seedling/Farmer/Expert/Champion
+• Unit tests: XP deduplication, streak timezone edge cases, all 15 badge conditions, weekly snapshot Edge Function","⬜ To Do","Sat D60","High"
+"KS-040","10","D55–D60","Week 10","All Members (Kartik + Umang + Harsh)","Full Team Sync","W10 — Expense Tracker & Gamification","Week 10 Saturday Sync & Review","✅ Expense tracker with charts + PDF export | Leaderboard with real XP | 15 badges awarding correctly | Daily streak + push reminders | Gamification hooks active","⬜ To Do","Sat D60","Critical"
+"KS-041","11","D61–D66","Week 11","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W11 — Push Notifications & Settings","Notification Centre + Preferences + Settings Screen + Help + Rate App Flow","• Notification centre: SectionList (Today/Yesterday/This Week) + type-specific icons + title + body + relative time + unread blue dot
+• Tap row → deep link to relevant screen
+• 'Mark All Read' button in header
+• Swipe left → delete action; swipe right → mark unread (react-native-gesture-handler)
+• App icon badge count via Expo Notifications setBadgeCountAsync
+• Empty state: illustration + 'No notifications yet'
+• Notification preferences: granular toggles for all 6 types + quiet hours time range picker
+• All preferences in users.notification_prefs JSONB column, write instantly on toggle (no Save button)
+• Settings screen: Account/Notifications/Appearance/Language/Privacy/About sections
+• Appearance: Light/Dark/System toggle + text size S/M/L/XL
+• Language: instant switch (no restart)
+• About: version + rate app link + privacy policy + terms
+• Account management: edit name + avatar, edit farm details, delete account (GDPR: mark deleted_at + anonymise PII after 30 days), export data (JSON)
+• Help + FAQ: 15 questions accordion + Contact Support email + feedback form (star rating + text)
+• Rate app: 7th app open → expo-store-review, track in PostHog, next prompt 90 days later","⬜ To Do","Sat D66","High"
+"KS-042","11","D61–D66","Week 11","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W11 — Push Notifications & Settings","FCM Infrastructure + Deep Links + Background Fetch + All 6 Notification Triggers","• Firebase project setup: google-services.json + GoogleServiceInfo.plist
+• Configure Expo with FCM credentials in app.json
+• send_push_notification(fcm_token, title, body, data) Edge Function
+• send_push_batch(tokens[], ...) for fan-out (500 tokens per FCM batch)
+• notification_logs table: id, user_id, type, title, sent_at, opened_at
+• Deep link URL scheme: krishisahayak:// (add to app.json)
+• Map each notification type to its deep link route
+• Backgrounded app: tap → navigate immediately
+• Killed app: store pending navigation in MMKV → execute after splash
+• Background fetch: Expo TaskManager + expo-background-fetch (15 min iOS)
+• All 6 triggers implemented: PRICE_ALERT, WEATHER_ALERT, NEW_MESSAGE, COMMUNITY_REPLY, STREAK_REMINDER (19:00 IST), WEEKLY_SUMMARY (Sunday 10:00 IST)
+• Notification load test: send 1000 test pushes → FCM delivery rate > 98%
+• Sentry alert if delivery rate drops < 80%","⬜ To Do","Sat D66","High"
+"KS-043","11","D61–D66","Week 11","Harsh (C)","QA · Research · Full-Stack Support","W11 — Push Notifications & Settings","Notification Types Doc + Analytics + Privacy Policy + Terms of Service","• Document all 6 notification types + trigger conditions + FCM payload structure in Notion
+• PostHog: track notification_sent (with type) + notification_opened (with type + time_to_open_seconds)
+• CTR calculation per notification type
+• A/B test streak reminder copy: 50% 'Don't lose your streak!' vs 50% 'Your streak awaits! 🌾'
+• Write Privacy Policy (1500+ words): data types, usage, sharing, retention, deletion, GDPR/India PDPB
+• Write Terms of Service (2000+ words): acceptable use, marketplace rules, content policy, liability
+• Host at /privacy and /terms in Next.js
+• Link from: app settings + web footer + onboarding
+• GDPR cookie consent banner on web only
+• Unit tests: notification preference filter (type disabled → skip send), quiet hours IST timezone logic, price alert → FCM end-to-end, deep link → correct screen, delete account → PII anonymised","⬜ To Do","Sat D66","High"
+"KS-044","11","D61–D66","Week 11","All Members (Kartik + Umang + Harsh)","Full Team Sync","W11 — Push Notifications & Settings","Week 11 Saturday Sync & Review","✅ All 6 notification types triggering and delivering | Notification centre + preferences live | Settings screen complete | Privacy Policy + ToS published | Load test results documented","⬜ To Do","Sat D66","Critical"
+"KS-045","12","D67–D72","Week 12","Kartik (A)","Product · UI/UX · Frontend (React Native + Next.js)","W12 — Multilingual & Offline Mode","Translation Audit + Language Switcher + Regional Formatting + Fonts + Translation Review","• Systematically visit every screen — move ALL hardcoded strings to i18n locale files (zero must remain)
+• Add all missing Hindi + Gujarati translations (DeepL + manual review)
+• Add Marathi (mr.json): translate 100 core strings covering onboarding + home + key actions
+• Language switcher in Settings: i18next.changeLanguage() → instant switch, no restart
+• Dynamic server data (news, schemes) re-fetches in new language
+• RTL layout stub: add Arabic option in language settings (display only, full RTL in Phase 2)
+• Test: switch to all 4 languages, navigate every main screen → zero hardcoded English visible
+• Currency: Intl.NumberFormat('en-IN', {style:'currency', currency:'INR'}) everywhere → ₹1,50,000
+• Date format: DD MMM YYYY across all screens
+• Time format: 12-hour AM/PM
+• Install Noto Sans Devanagari + Noto Sans Gujarati via expo-font
+• Load both fonts in App.tsx before render; increase Devanagari line height by 20%
+• Test on Android 9 physical device + check text overflow for Gujarati (longer strings)
+• Recruit 1-2 native Hindi speakers + 1 Gujarati speaker → review app translations
+• Fix all incorrect agricultural vocabulary (quintal, mandi, etc.) → commit reviewed translations","⬜ To Do","Sat D72","High"
+"KS-046","12","D67–D72","Week 12","Umang (B)","Backend · DevOps · APIs (Supabase + CI/CD)","W12 — Multilingual & Offline Mode","WatermelonDB Setup + Offline Caching Strategy + Sync Conflicts + Low-Bandwidth Mode","• Install @nozbe/watermelondb + configure native linking for Android and iOS
+• Define local schema: LocalWeather, LocalPrice, LocalNewsArticle, LocalDraft models
+• Configure SyncAdapter: pull from Supabase on every app open, push after local writes
+• Caching strategy: Weather (MMKV, 1hr), Market prices (WatermelonDB, 30min), News last 20 (WatermelonDB, 2hr), Schemes all (WatermelonDB, 1 week), Community posts last 50 (read-only offline)
+• Conflict resolution: server wins for shared data (prices, news); client wins for user-owned data (profile, expenses)
+• Log conflicts to Sentry: user_id, table_name, record_id, conflict_type
+• Test: edit expense offline → edit same expense via Studio → reconnect → verify client wins
+• NetInfo: detect 2G/EDGE → activate Lite Mode (disable Realtime WebSocket, reduce image quality, increase staleTime to 10min)
+• Supabase client: exponential backoff retry (1s → 2s → 4s, max 3 attempts)
+• Cache-first strategy on all data fetching hooks
+• /api/health GET endpoint in Next.js returning {status:'ok', timestamp}
+• Document cache invalidation rules for each data type in Notion","⬜ To Do","Sat D72","High"
+"KS-047","12","D67–D72","Week 12","Harsh (C)","QA · Research · Full-Stack Support","W12 — Multilingual & Offline Mode","Offline Write Queue + Offline UI + Accessibility Audit + Tests","• Offline write queue: any write action while offline → WatermelonDB LocalDraft queue (pest scan, expense, post, listing)
+• On reconnect: process queue in chronological order, toast per item processed
+• 'X items pending sync' badge in Settings → tap to see queued items
+• 'No Internet Connection' red banner: appear on NetInfo disconnect, auto-hide on reconnect
+• 'Cached X hours ago' grey badge on all stale data cards
+• 'Back online! Syncing...' green toast on reconnect (3 second auto-dismiss)
+• Persistent 'Lite Mode Active — Saving Data' banner (dismissable)
+• Accessibility Inspector (Xcode): all interactive elements have accessibilityLabel, all images have accessibilityHint
+• VoiceOver (iOS) + TalkBack (Android) test on: Home, Market, Pest Scan, Community, Settings
+• File all critical accessibility failures as P1 GitHub Issues
+• Unit tests: language switch updates all strings, cache age calculation, offline queue (5 items → reconnect → all synced), low-bandwidth → Realtime disabled
+• 8-combination test matrix: 4 languages × 2 themes (light/dark) on Home + Market + Settings","⬜ To Do","Sat D72","High"
+"KS-048","12","D67–D72","Week 12","All Members (Kartik + Umang + Harsh)","Full Team Sync","W12 — Multilingual & Offline Mode","Week 12 Saturday Sync & Review","✅ All 4 languages reviewed by native speakers | Zero hardcoded strings | WatermelonDB offline cache for all 5 data types | Write queue processes on reconnect | Lite Mode on 2G | Accessibility audit done","⬜ To Do","Sat D72","Critical"
+"W13-D75-A","13","D75","Wednesday","Kartik (A)","Product · UI/UX · Frontend","W13 — UI Polish & Quality","Empty State Illustrations (All 6 Screens)","• Screens needing empty states: Community Feed (no posts yet), Marketplace (no listings), Notification Centre (inbox empty), Expense Tracker (no records this month), Pest Detection History (no scans), Conversations (no chats)
+• Each empty state: unique SVG illustration (source from Storyset.com — agricultural/green theme) + friendly 1-line message + primary CTA button
+• Community empty: 'No posts yet — be the first to share something!' + 'Post Now' button
+• Marketplace empty: 'No listings found — start selling your produce!' + 'Create Listing' button
+• All messages localised in user's active language
+• CTA buttons navigate to the correct create flow","⬜ To Do","Sat D78","High"
+"W13-D75-B","13","D75","Wednesday","Umang (B)","Backend · DevOps · APIs","W13 — UI Polish & Quality","Error State Consistency Audit","• Go through every API-connected screen and verify the error state shows: icon + friendly message + 'Retry' button
+• Network error message: 'Check your internet connection and try again'
+• Server error (5xx): 'Something went wrong on our end. We're looking into it.'
+• Auth error (401): 'Your session has expired. Please log in again.' → auto-redirect to login
+• Test: disable Supabase in dashboard → confirm EVERY data screen shows error state (not blank or crash)
+• Fix any screen that shows a blank white screen on API failure — file as P1 Issue","⬜ To Do","Sat D78","High"
+"W13-D75-C","13","D75","Wednesday","Harsh (C)","QA · Research · Support","W13 — UI Polish & Quality","Toast Notification System","• Install react-native-toast-message library
+• Configure 3 toast types: success (green background), error (red background), info (blue background)
+• Position: top of screen below the header bar (not bottom — conflicts with keyboard)
+• Auto-dismiss timing: success toasts dismiss after 3 seconds, error toasts after 5 seconds
+• Implement consistently: every write operation (add expense, create post, create listing, bookmark, like) shows a success toast on complete
+• Every failed write shows an error toast with short reason","⬜ To Do","Sat D78","High"
+"W13-D76-A","13","D76","Thursday","Kartik (A)","Product · UI/UX · Frontend","W13 — UI Polish & Quality","Final Screen-by-Screen Polish Pass","• Open every screen in the app one by one (write checklist — 20+ screens)
+• Verify for each screen: consistent 16px horizontal screen margins everywhere
+• Verify: all body text is minimum 14pt, all primary content text minimum 18pt
+• Verify: all icons use Phosphor Icons library at 24px default size (no mixed icon libraries)
+• Verify: all primary action buttons are exactly 52px height with 12px border-radius
+• Verify: consistent vertical spacing between sections (use 16px or 24px — never arbitrary values)","⬜ To Do","Sat D78","High"
+"W13-D76-B","13","D76","Thursday","Umang (B)","Backend · DevOps · APIs","W13 — UI Polish & Quality","Bundle Size Optimisation","• Run: npx expo export --analyze → open bundle visualiser in browser
+• Identify top 5 largest dependencies by size
+• Replace heavy libraries with lighter alternatives where possible (e.g. use built-in instead of lodash)
+• Ensure Hermes JavaScript engine is enabled (default in Expo SDK 50+ but verify in app.json)
+• Run release build: eas build --profile preview --platform android
+• Download APK → check file size: must be < 30MB. If > 30MB → identify and remove largest unused assets","⬜ To Do","Sat D78","High"
+"W13-D76-C","13","D76","Thursday","Harsh (C)","QA · Research · Support","W13 — UI Polish & Quality","Web App Responsive & SEO Audit","• Test every Next.js page at 4 breakpoints: 375px (mobile), 768px (tablet), 1280px (desktop), 1920px (wide)
+• Fix any layout breaks or overflow issues at each breakpoint
+• Verify: all images on web have descriptive alt text (required for SEO + accessibility)
+• Verify: every web page has unique meta title + meta description
+• Verify: OG images set for home, market, schemes, and news pages
+• Generate sitemap.xml using next-sitemap package → submit to Google Search Console","⬜ To Do","Sat D78","High"
+"W13-D77-A","13","D77","Friday","Kartik (A)","Product · UI/UX · Frontend","W13 — UI Polish & Quality","Splash → Exit Animation Final Review","• Splash screen: test the full 4-second cinematic sequence on a slow mid-range Android device
+• Confirm: animations do not feel sluggish on older hardware (reduce complexity if needed)
+• Exit warning bottom sheet: smooth spring slide-up animation (not instant appear)
+• Thank-you / goodbye screen: waving hand Lottie animation + gentle fade out
+• All entry and exit animations must use spring physics (not linear — feels unnatural)
+• Record a clean screen video of the full open → use → exit flow — save for investor demo reel","⬜ To Do","Sat D78","High"
+"W13-D77-B","13","D77","Friday","Umang (B)","Backend · DevOps · APIs","W13 — UI Polish & Quality","Security Final Audit","• Confirm: zero API keys or secrets exist in any client-side code (grep for .env variable names in /src)
+• Confirm: Supabase anon key only has access to public data (test by calling restricted RPC without auth — must get 401)
+• Confirm: ALL Supabase tables still have RLS enabled (check via Studio: Authentication → Policies)
+• Confirm: all user data mutations (INSERT/UPDATE/DELETE) require a valid auth JWT
+• Test: sign out → clear SecureStore → attempt to call a protected RPC → must fail with 401
+• Run: npx expo install --check → resolve any deprecated or vulnerable packages","⬜ To Do","Sat D78","High"
+"W13-D77-C","13","D77","Friday","Harsh (C)","QA · Research · Support","W13 — UI Polish & Quality","Full QA Sweep — Device Testing","• Test every screen on physical Android mid-range device (Redmi Note series preferred)
+• Test on iOS simulator if Mac is available
+• Test matrix: 4 languages (EN, HI, GU, MR) × 2 themes (light, dark) = 8 combinations on Home + Market + Settings
+• For every visual bug or broken layout found: file a GitHub Issue immediately
+• Label each issue: P1 (must fix before launch — blocking), P2 (fix post-launch — non-blocking)
+• Target: zero P1 issues remaining by end of Week 15","⬜ To Do","Sat D78","High"
+"W13-D78-ALL","13","D78","Saturday","All (Kartik + Umang + Harsh)","Full Team Sync","W13 — UI Polish & Quality","Week 13 Team Sync & Review","• Verify: all screen transitions at 250ms — zero janky frames on Redmi Note 11
+• Verify: micro-interactions on every button and input across all screens
+• Verify: all 6 empty state illustrations in place
+• Verify: bundle size < 30MB for release APK
+• Verify: security audit passed (no client-side API keys, all RLS enforced)
+• Verify: GitHub Issues filed and labelled for all QA bugs found
+• Count total P1 issues → plan Week 15 bug sprint accordingly
+• Merge all PRs","⬜ To Do","Sat D78","High"
+"W14-D79-A","14","D79","Monday","Kartik (A)","Product · UI/UX · Frontend","W14 — Testing & UAT","Unit Test Coverage Sprint","• Run: npx jest --coverage → view coverage report in browser
+• Target: 70%+ coverage on ALL service functions and utility functions
+• Write missing tests for: i18n locale loading (all 4 languages load without error), form validation schemas (all Zod schemas), animation hook mocks (use jest.mock('react-native-reanimated'))
+• Write tests for all PostHog track() calls: mock PostHog client, assert correct event names and properties
+• Policy: zero failing tests before any PR can be merged this week","⬜ To Do","Sat D84","High"
+"W14-D79-B","14","D79","Monday","Umang (B)","Backend · DevOps · APIs","W14 — Testing & UAT","Backend Integration Tests","• Test every Supabase RPC function using a dedicated test Supabase project (not production)
+• Test RLS policies: create two test user accounts → attempt to read/write each other's data → must return 403 Forbidden
+• Test all Edge Functions: supabase functions invoke [function-name] --local with known inputs → verify expected outputs
+• Test pg_cron jobs: trigger manually via SQL → verify correct records inserted in DB
+• Document all expected API response shapes in Notion (used for contract testing)","⬜ To Do","Sat D84","High"
+"W14-D79-C","14","D79","Monday","Harsh (C)","QA · Research · Support","W14 — Testing & UAT","E2E Test Setup with Detox","• Install Detox: npm install detox --save-dev
+• Configure Detox for Android emulator in .detoxrc.js
+• Write E2E Test 1: New user signup → OTP verification → profile setup → home screen loads with data
+• Write E2E Test 2: Navigate to weather screen → live temperature data displays (not skeleton)
+• Write E2E Test 3: Pest detection — tap FAB → camera opens → upload gallery image → results screen shows disease name
+• Write E2E Test 4: Create marketplace listing → appears in marketplace grid
+• Run: npx detox build --configuration android.emu.debug && npx detox test","⬜ To Do","Sat D84","High"
+"W14-D80-A","14","D80","Tuesday","Kartik (A)","Product · UI/UX · Frontend","W14 — Testing & UAT","Performance Testing","• Enable React Native Performance Monitor overlay (Cmd+M on Android emulator → Perf Monitor)
+• Navigate every screen: flag any screen where FPS drops below 55 consistently
+• Use Flipper + React DevTools: check memory usage over 10 minutes of active use (no memory leak)
+• Specific test: navigate to community feed → scroll for 2 minutes → check memory (should not keep growing)
+• Profile: time from app cold start to home screen showing real data (target: < 3 seconds on mid-range Android)
+• Verify: FlatList windowing active on all list screens (removeClippedSubviews working)","⬜ To Do","Sat D84","High"
+"W14-D80-B","14","D80","Tuesday","Umang (B)","Backend · DevOps · APIs","W14 — Testing & UAT","API Stress Testing","• Install k6 (npm install -g k6) or use Artillery for load testing
+• Stress test 1: 100 concurrent users calling get_dashboard_data RPC → measure p50/p95/p99 latency
+• Stress test 2: 50 concurrent Supabase Realtime subscriptions → verify all receive updates
+• Monitor during test: Supabase dashboard (CPU %, active connections, query time)
+• Document maximum concurrent users before latency degrades above 400ms
+• Note Supabase free tier Realtime limit: 500 concurrent connections (plan for scaling)","⬜ To Do","Sat D84","High"
+"W14-D80-C","14","D80","Tuesday","Harsh (C)","QA · Research · Support","W14 — Testing & UAT","Security Penetration Testing (Basic)","• SQL injection test: send malicious strings to ALL search and filter inputs (e.g. '; DROP TABLE users; --') → verify parameterised queries prevent any damage
+• Auth bypass test: call each protected RPC endpoint without a JWT token → must return 401 on all
+• Storage URL guessing: try to access another user's avatar or listing image by guessing the URL pattern → RLS must block
+• OTP rate limit test: send 10 OTP requests for same phone number in 1 minute → confirm rate limit triggers and blocks
+• Document all test results in Notion: pass/fail for each test case","⬜ To Do","Sat D84","High"
+"W14-D81-A","14","D81","Wednesday","Kartik (A)","Product · UI/UX · Frontend","W14 — Testing & UAT","UAT Preparation","• Write UAT test script: exactly 10 tasks that a real farmer should complete in 45 minutes
+  Task 1: Sign up with your phone number
+  Task 2: Set up your farm profile (location, crops, land size)
+  Task 3: Find the current wheat price in your district
+  Task 4: Check tomorrow's weather forecast for your farm
+  Task 5: Take a photo of a plant leaf and run pest detection
+  Task 6: Browse the marketplace for available tractors
+  Task 7: Post a question in the community feed
+  Task 8: Add an expense of ₹500 for fertiliser
+  Task 9: Check your XP rank on the leaderboard
+  Task 10: Find the PM-KISAN scheme and check if you qualify
+• Recruit 5–8 real farmers (not tech people): family, neighbours, local farming contacts
+• Prepare 2 clean test devices: fresh install from release build (NOT debug build)","⬜ To Do","Sat D84","High"
+"W14-D81-B","14","D81","Wednesday","Umang (B)","Backend · DevOps · APIs","W14 — Testing & UAT","UAT Support — Backend Monitoring","• Open Supabase Studio logs dashboard on laptop during all UAT sessions
+• Monitor in real-time: API errors, slow queries (> 500ms), failed Edge Function calls
+• Have SQL editor open and ready: fix any data issues on the fly during sessions
+• Document every error or unexpected DB state seen during UAT with full stack trace
+• Prepare hotfix deployment pipeline: can push a fix and redeploy Edge Functions in < 15 minutes if critical bug found","⬜ To Do","Sat D84","High"
+"W14-D81-C","14","D81","Wednesday","Harsh (C)","QA · Research · Support","W14 — Testing & UAT","UAT Execution — Day 1 (Sessions 1–3)","• Run UAT sessions with first 2–3 farmers (in-person preferred, video call acceptable)
+• Each session is 45 minutes following the 10-task UAT script
+• CRITICAL RULE: observe without helping — do not explain how to use features. Only intervene if completely stuck for > 2 minutes
+• Note exact moments where farmer hesitates, goes wrong, or expresses confusion
+• Screen record each session (with farmer's verbal permission) for later review
+• Collect verbal feedback at end: 'What did you like most? What was confusing?'
+• Fill prepared Google Form feedback after each session","⬜ To Do","Sat D84","High"
+"W14-D82-A","14","D82","Thursday","Kartik (A)","Product · UI/UX · Frontend","W14 — Testing & UAT","UAT Execution — Day 2 (Sessions 4–8)","• Run remaining 3–5 UAT sessions with remaining farmer testers
+• After all sessions: compile observations → identify TOP 3 usability problems seen across multiple testers
+• For each problem: create P1 GitHub Issue with: screen name, exact user behaviour, what the correct behaviour should be
+• Create P2 issues for improvement suggestions (nice-to-have, non-blocking)
+• Discuss findings with Umang and Harsh: agree on which P1 issues absolutely must be fixed before launch","⬜ To Do","Sat D84","High"
+"W14-D82-B","14","D82","Thursday","Umang (B)","Backend · DevOps · APIs","W14 — Testing & UAT","Supabase Realtime Load Testing","• Simulate 200 concurrent WebSocket connections to Supabase Realtime
+• Test 1: all 200 clients subscribed to market_prices table → insert 1 row → verify all 200 receive within 500ms
+• Test 2: 50 concurrent chat conversations → send messages simultaneously → verify all recipients receive messages within 300ms
+• Monitor Supabase dashboard for connection pool exhaustion or dropped connections
+• Document results: max connections before degradation, message delivery latency under load","⬜ To Do","Sat D84","High"
+"W14-D82-C","14","D82","Thursday","Harsh (C)","QA · Research · Support","W14 — Testing & UAT","Accessibility Testing (VoiceOver & TalkBack)","• Android TalkBack: enable in Accessibility settings → navigate these screens using only touch + audio: Home, Market, Pest Scan Camera, Community, Settings
+• Verify: every button reads a meaningful label (not 'Button' or 'Image')
+• Verify: every image reads a descriptive hint
+• Verify: price values are read with full context ('Wheat: 2,450 rupees per quintal' not just '2450')
+• iOS VoiceOver (if Mac/iPhone available): same 5-screen test
+• File all critical failures as P1 GitHub Issues with screen + element + failure description","⬜ To Do","Sat D84","High"
+"W14-D83-A","14","D83","Friday","Kartik (A)","Product · UI/UX · Frontend","W14 — Testing & UAT","UAT Findings Review & Prioritisation","• Compile ALL feedback from all sessions into a single priority matrix table: Issue | Impact (H/M/L) | Effort to Fix (H/M/L)
+• High Impact + Low Effort → fix in Week 15 (mandatory)
+• High Impact + High Effort → discuss with team: is it P1 (must fix) or P2 (post-launch)?
+• Low Impact → backlog, do not fix before launch
+• Prepare UAT Summary slide for investor deck: NPS score (average from all sessions), key quotes from farmers, top 3 positive findings, top 3 issues found + fixed","⬜ To Do","Sat D84","High"
+"W14-D83-B","14","D83","Friday","Umang (B)","Backend · DevOps · APIs","W14 — Testing & UAT","Regression Test Suite","• Create regression test checklist in Notion: 20 critical flows that must work correctly before every release
+  Examples: Sign up → profile setup, OTP flow, market prices load, pest detection, create listing, send message, add expense, leaderboard rank updates
+• All 3 team members must run through this checklist and mark each item pass/fail
+• ALL 3 members must sign off: 'Regression passed' before any build can be released to store
+• Test on minimum 3 different Android devices: low-end (Android 8), mid-range (Android 11), high-end (Android 13)","⬜ To Do","Sat D84","High"
+"W14-D83-C","14","D83","Friday","Harsh (C)","QA · Research · Support","W14 — Testing & UAT","Test Coverage Final Report","• Run final Jest coverage report: npx jest --coverage --coverageReporters=html
+• Document per-module coverage in Notion table: Module | Lines % | Functions % | Branches %
+• Flag any module with < 50% coverage → write missing tests immediately or mark as accepted risk with justification
+• Configure GitHub Actions CI to post coverage report as automated comment on every PR
+• Final target: minimum 70% overall coverage across all modules before Week 16 launch","⬜ To Do","Sat D84","High"
+"W14-D84-ALL","14","D84","Saturday","All (Kartik + Umang + Harsh)","Full Team Sync","W14 — Testing & UAT","Week 14 Team Sync & Review","• Verify: Jest coverage report at 70%+ overall
+• Verify: all 4 Detox E2E tests passing on Android emulator
+• Verify: UAT completed with minimum 5 real farmers — findings documented
+• Verify: security pen test results documented (all pass)
+• Verify: performance profiling done — no screens with consistent < 55fps
+• Verify: ALL P1 issues from UAT filed in GitHub with correct labels
+• Count total P1 issues → each member owns specific P1s for Week 15 sprint
+• Merge all PRs","⬜ To Do","Sat D84","High"
+"W15-D85-A","15","D85","Monday","Kartik (A)","Product · UI/UX · Frontend","W15 — Bug Fixes & Store Prep","P1 Bug Fix Sprint — Start","• Pull all P1 GitHub Issues assigned to Kartik
+• Estimate each fix: classify as < 1 hour, 1–3 hours, or > 3 hours
+• Work through P1 list in order of impact: most user-visible bugs first
+• Workflow for each fix: create branch → fix → manual test on device → open PR → request review → merge
+• Do NOT context-switch between multiple issues simultaneously — finish one completely before starting next","⬜ To Do","Sat D90","High"
+"W15-D85-B","15","D85","Monday","Umang (B)","Backend · DevOps · APIs","W15 — Bug Fixes & Store Prep","Database Performance Optimisation","• Run EXPLAIN ANALYZE on every slow query found during performance testing
+• Add missing indexes where query plan shows Sequential Scan on a table with > 1000 rows
+• Verify ALL foreign key columns are indexed (e.g. user_id on every child table)
+• Archive old data: move market_prices records older than 30 days to archive_market_prices table (reduces main table size)
+• Configure Supabase connection pooling settings for production load","⬜ To Do","Sat D90","High"
+"W15-D85-C","15","D85","Monday","Harsh (C)","QA · Research · Support","W15 — Bug Fixes & Store Prep","App Store Screenshots Preparation","• Capture screenshots on a clean device at exact required dimensions: 1080×1920px (Android)
+• 6 required screens: Home Dashboard, Weather Module, Market Prices, AI Pest Detection Results, Marketplace Listing Grid, Community Feed
+• Open each screenshot in Figma: add marketing overlay text in English
+• Example overlays: 'Real-Time Mandi Prices' | 'AI Pest Detection' | 'Offline-First — Works Anywhere'
+• Create Hindi versions of same 6 screenshots (Play Store allows multilingual screenshots)
+• Export at correct DPI for both Google Play and Apple App Store","⬜ To Do","Sat D90","High"
+"W15-D86-A","15","D86","Tuesday","Kartik (A)","Product · UI/UX · Frontend","W15 — Bug Fixes & Store Prep","App Store Listing Copywriting","• Google Play — Short Description (80 chars max): 'Real-time mandi prices, AI pest detection & weather for Indian farmers 🌾'
+• Google Play — Full Description (4000 chars max): problem statement → feature highlights → call to action. Include keywords naturally: farmer app India, mandi price app, kisan app, krishi app, pest detection
+• Apple App Store — Description (4000 chars): same structure, slightly different tone (Apple audience skews more premium)
+• Apple App Store — Keywords field (100 chars, comma-separated): research top search terms in App Store Connect
+• App Category: Agriculture on Google Play. Research best fit for Apple (Utilities vs Reference vs Productivity)
+• Write release notes for version 1.0.0: 'First release — includes weather, mandi prices, AI pest detection, marketplace and community features.'","⬜ To Do","Sat D90","High"
+"W15-D86-B","15","D86","Tuesday","Umang (B)","Backend · DevOps · APIs","W15 — Bug Fixes & Store Prep","Production Supabase Environment Setup","• Create a NEW separate Supabase project for production (named krishisahayak-prod)
+• Run ALL migration files against production: supabase db push --db-url $PROD_DB_URL
+• Run seed.sql for static data: crop list, govt schemes, weather tips, disease treatments
+• Store ALL production API keys in Supabase Vault (not hardcoded anywhere): OpenWeatherMap, Plant.id, Twilio, NewsAPI, FCM Server Key
+• Create Vercel production project linked to krishisahayak-prod Supabase
+• Set all Vercel environment variables for production
+• Deploy web app to production Vercel: confirm krishisahayak.com loads correctly","⬜ To Do","Sat D90","High"
+"W15-D86-C","15","D86","Tuesday","Harsh (C)","QA · Research · Support","W15 — Bug Fixes & Store Prep","Landing Page Build (Next.js)","• Build krishisahayak.com landing page (new /app/page.tsx in Next.js)
+• Section 1 — Hero: animated tagline ('Empowering 140M+ Indian Farmers') + 'Download on Google Play' button + app mockup image
+• Section 2 — Features: 6 feature cards with Phosphor icons and 1-line descriptions
+• Section 3 — Screenshots: horizontal auto-scrolling carousel of 6 app screenshots
+• Section 4 — Social Proof: 'Join [X] farmers already using KrishiSahayak' (dynamic count from DB)
+• Footer: Privacy Policy link, Terms link, Contact email, app store badges
+• Mobile-responsive: test at 375px — all sections must look great on phone browser","⬜ To Do","Sat D90","High"
+"W15-D87-A","15","D87","Wednesday","Kartik (A)","Product · UI/UX · Frontend","W15 — Bug Fixes & Store Prep","EAS Production Build — Android APK","• Configure eas.json production profile: set buildType to apk (for testing) and then aab (for Play Store submission)
+• Add all required secrets to EAS Secrets in Expo dashboard: SUPABASE_URL, SUPABASE_ANON_KEY, SENTRY_DSN, POSTHOG_API_KEY, GOOGLE_MAPS_API_KEY
+• Run: eas build --profile production --platform android
+• Download the built APK when complete
+• Install on 3 different Android devices (low/mid/high end) and manually test all 10 UAT tasks
+• Verify: no debug logs in console, Sentry connected, PostHog events firing, FCM push works","⬜ To Do","Sat D90","High"
+"W15-D87-B","15","D87","Wednesday","Umang (B)","Backend · DevOps · APIs","W15 — Bug Fixes & Store Prep","Production Environment Smoke Test","• Run complete smoke test on production Supabase + production Vercel (not dev/staging)
+• Test every module end-to-end: sign up → profile → home → weather → market → pest scan → marketplace → community → expense → leaderboard → settings
+• Confirm: Edge Functions use production API keys (check OpenWeatherMap is returning real data, not cached dev data)
+• Confirm: FCM push notifications delivered to a real physical device
+• Confirm: Sentry errors appear in the correct production Sentry project (not dev project)
+• Confirm: PostHog events appear in production PostHog project","⬜ To Do","Sat D90","High"
+"W15-D87-C","15","D87","Wednesday","Harsh (C)","QA · Research · Support","W15 — Bug Fixes & Store Prep","Google Play Store Submission","• Log into Google Play Console → create new app
+• Fill app details: title, short description, full description (from Kartik's copy)
+• Upload: 6 English screenshots, 6 Hindi screenshots, feature graphic (1024×500px), app icon (512×512px)
+• Set content rating: complete rating questionnaire (Agriculture app = Everyone rating)
+• Set pricing: Free
+• Set countries: All countries
+• Upload AAB (Android App Bundle) as Internal Testing release first
+• Add all 3 team members + 2–3 external testers as Internal Testers
+• Confirm internal test build installs successfully from Play Store","⬜ To Do","Sat D90","High"
+"W15-D88-A","15","D88","Thursday","Kartik (A)","Product · UI/UX · Frontend","W15 — Bug Fixes & Store Prep","P1 Bug Fix Sprint — Completion","• ALL P1 GitHub Issues must be fixed, PR merged, and tested on device by end of today
+• After all P1 fixes merged: run full regression test checklist (20 flows from Week 14)
+• Personal sign-off walkthrough: Kartik goes through EVERY screen personally (30-minute session)
+• Note any remaining P2 issues that were found during sign-off → add to post-launch backlog
+• Final declaration: 'Zero P1 issues remaining' — must be confirmed before proceeding to launch","⬜ To Do","Sat D90","High"
+"W15-D88-B","15","D88","Thursday","Umang (B)","Backend · DevOps · APIs","W15 — Bug Fixes & Store Prep","Production Monitoring Setup","• Supabase: set up email alert rules in dashboard → alert if DB CPU > 80% or active connections > 80%
+• Sentry: configure alert rule → email/Slack notification if error rate exceeds 10 errors/minute
+• PostHog: configure daily digest email with: DAU (Daily Active Users), top events, funnel conversion rates
+• Vercel: enable deployment success/failure notifications to team WhatsApp group
+• Uptime Robot (free): monitor krishisahayak.com AND Supabase /api/health endpoint every 5 minutes → email alert if down","⬜ To Do","Sat D90","High"
+"W15-D88-C","15","D88","Thursday","Harsh (C)","QA · Research · Support","W15 — Bug Fixes & Store Prep","Apple App Store Submission","• Run iOS EAS build: eas build --profile production --platform ios
+• Upload IPA to App Store Connect using eas submit --platform ios (or Apple Transporter app)
+• Fill App Store Connect listing: title, subtitle (30 chars), description (from Kartik's copy), keywords
+• Set: App Category (Agriculture or Utilities), Age Rating (4+), Pricing (Free)
+• Add privacy labels: declare data types collected (usage data, contact info)
+• Submit for Apple Review → typical review time: 1–3 business days
+• Note: if Apple rejects, common reasons are: missing privacy policy link, demo account needed, or misleading screenshots — fix immediately and resubmit","⬜ To Do","Sat D90","High"
+"W15-D89-A","15","D89","Friday","Kartik (A)","Product · UI/UX · Frontend","W15 — Bug Fixes & Store Prep","Beta Release — Controlled Testing (20–50 users)","• Promote Play Store from Internal Testing → Closed Testing (up to 50 users)
+• Invite: farmer contacts from UAT, extended family, college friends in agriculture
+• Create WhatsApp group with all beta testers: 'KrishiSahayak Beta Testers'
+• Monitor: Sentry for any new crashes reported by beta users
+• Monitor: PostHog for user paths — are beta users completing onboarding? Where are they dropping off?
+• Collect emergency feedback via WhatsApp group: respond to every message within 2 hours","⬜ To Do","Sat D90","High"
+"W15-D89-B","15","D89","Friday","Umang (B)","Backend · DevOps · APIs","W15 — Bug Fixes & Store Prep","API Cost Audit","• Calculate projected monthly API costs at 1000 MAU (Monthly Active Users)
+• OpenWeatherMap: (farms count × 48 fetches/day × 30 days) = total calls/month vs free tier (1M/month)
+• Twilio OTP: (new signups × ₹0.50 per OTP) = monthly SMS cost
+• Plant.id: (pest scans per user per month × 1000 MAU) vs free tier (100/day = ~3000/month)
+• NewsAPI: (fetches per day × 30) vs free tier (100/day)
+• Total projected cost at 1000 MAU: document in cost model spreadsheet
+• Identify any optimisations: e.g. batch weather fetches, cache more aggressively","⬜ To Do","Sat D90","High"
+"W15-D89-C","15","D89","Friday","Harsh (C)","QA · Research · Support","W15 — Bug Fixes & Store Prep","Pre-Launch Checklist Final Verification","• Go through ALL 30 quality checklist items from Section 05 of the blueprint document
+• Mark each item: ✅ Done / ❌ Not Done / N/A
+• Every ❌ item must either: be completed immediately, or be formally moved to post-launch backlog with written justification
+• ALL 3 team members review the checklist together
+• ALL 3 members must verbally agree: 'We are ready to launch'
+• If any member has a concern: do not ship until concern is resolved or formally accepted as known limitation","⬜ To Do","Sat D90","High"
+"W15-D90-ALL","15","D90","Saturday","All (Kartik + Umang + Harsh)","Full Team Sync","W15 — Bug Fixes & Store Prep","Week 15 Team Sync & Review","• Verify: ALL P1 bugs resolved and closed on GitHub
+• Verify: production APK installed and fully tested on 3 Android devices
+• Verify: Play Store Closed Testing live with 20–50 beta users
+• Verify: Apple App Store submitted (review in progress)
+• Verify: landing page live at krishisahayak.com on Vercel
+• Verify: monitoring configured (Sentry + PostHog + Uptime Robot)
+• Verify: pre-launch checklist signed off by all 3 members
+• Read Week 16 launch plan together — everyone knows their launch day role","⬜ To Do","Sat D90","High"
+"W16-D91-A","16","D91","Monday","Kartik (A)","Product · UI/UX · Frontend","W16 — 🚀 Public Launch","Public Launch — Play Store Goes Live","• Promote Play Store from Closed Testing → Open Testing → Production (makes app publicly available)
+• Write and post launch announcement on LinkedIn: 'We built KrishiSahayak in 16 weeks as 3 college students...'
+  Include: problem statement, app features, Play Store download link, team photo
+• Post on Instagram: 6-image carousel (one screenshot per major feature)
+• Share download link in 20+ farmer WhatsApp groups (personal network + regional farming groups)
+• Record 60-second demo video: screen recording with voiceover explaining 5 key features → post on all channels","⬜ To Do","Sat D96","Critical"
+"W16-D91-B","16","D91","Monday","Umang (B)","Backend · DevOps · APIs","W16 — 🚀 Public Launch","Launch Day Real-Time Monitoring","• Keep Sentry error dashboard open on second screen — monitor for any launch-day crashes
+• Keep PostHog live events view open — watch installs, sign-ups, onboarding completion rate
+• Keep Supabase dashboard open — watch DB connections (should not spike), Edge Function error rate
+• Keep Uptime Robot status page open — confirm krishisahayak.com stays green all day
+• HOTFIX PROTOCOL: if critical bug found → branch → fix → push → EAS OTA update or Play Store hotfix build in < 15 minutes
+• Respond to any Play Store reviews posted today within 1 hour","⬜ To Do","Sat D96","Critical"
+"W16-D91-C","16","D91","Monday","Harsh (C)","QA · Research · Support","W16 — 🚀 Public Launch","PR & Media Outreach","• Write and send press kit email to 5 media outlets: Krishi Jagran, The Better India, YourStory, Inc42, Gaon Connection
+• Press kit contents: 1-paragraph app description, 3 best screenshots, team bios (3 sentences each), download link, story angle ('3 college students build global-grade farmer app in 16 weeks')
+• Post on Reddit: r/india (launch post) and r/IndianStartups (startup intro post)
+• Tag 5 relevant AgriTech VCs and accelerators on the LinkedIn launch post
+• Submit KrishiSahayak to BetaList and IndieHackers for additional discovery","⬜ To Do","Sat D96","Critical"
+"W16-D92-A","16","D92","Tuesday","Kartik (A)","Product · UI/UX · Frontend","W16 — 🚀 Public Launch","Product Hunt Launch","• Launch on Product Hunt at 12:01 AM PST (noon IST) — timing maximises votes
+• Tagline: 'The first global-quality farmer super-app built by 3 college students'
+• Gallery: 5 screenshots + 1 demo GIF (record 30-second GIF of key user flow)
+• First comment: post a detailed 'Maker Comment' explaining the story, challenges, and what's next
+• Respond personally and thoughtfully to EVERY comment posted throughout the day
+• Ask team, family, friends, beta users, and professional network to upvote and comment
+• Track hourly rank throughout the day — share updates in team WhatsApp group","⬜ To Do","Sat D96","Critical"
+"W16-D92-B","16","D92","Tuesday","Umang (B)","Backend · DevOps · APIs","W16 — 🚀 Public Launch","Day 1 Metrics Analysis","• At 9 PM: compile Day 1 metrics from PostHog + Play Store + Sentry
+  - Total installs (Play Store)
+  - Total sign-ups (PostHog: otp_verified events)
+  - Onboarding completion rate (profile_completed / otp_verified %)
+  - D1 session length (average time in app)
+  - Top crash: most common Sentry error (if any) → create P0 hotfix issue
+• Identify top traffic source: which WhatsApp group or social post drove most installs?
+• Create Day 1 Report document in Notion — share with all 3 members tonight
+• Set up automated weekly PostHog digest email for all 3 members","⬜ To Do","Sat D96","Critical"
+"W16-D92-C","16","D92","Tuesday","Harsh (C)","QA · Research · Support","W16 — 🚀 Public Launch","User Feedback Collection — First Week","• Monitor Google Play Store reviews throughout the day — respond to EVERY review within 24 hours
+• Create 'Launch Feedback' spreadsheet: Category (Bug / Feature Request / Compliment / Confusion) + User Quote + Action
+• Direct message the FIRST 50 users who signed up: 'Hi [name], we noticed you tried KrishiSahayak. We'd love 5 minutes of your feedback — can we call?'
+• Collect testimonial quotes from positive feedback (with permission) → save for investor deck
+• Set up PostHog NPS Survey (Day 3 trigger): appears in app on 3rd session → 'How likely are you to recommend KrishiSahayak to another farmer? (0–10)'","⬜ To Do","Sat D96","Critical"
+"W16-D93-A","16","D93","Wednesday","Kartik (A)","Product · UI/UX · Frontend","W16 — 🚀 Public Launch","Investor Pitch Deck — Final Version","• Build 12-slide pitch deck in Figma or Pitch.com — professional, branded, investor-ready
+  Slide 1: Cover — KrishiSahayak logo + tagline + team names
+  Slide 2: Problem — 140M+ Indian farmers lack modern digital tools (with data)
+  Slide 3: Solution — product screenshots showing 5 key features
+  Slide 4: Product Demo — embedded 2-minute demo video or animated GIF
+  Slide 5: Market Size — Indian agritech TAM/SAM/SOM with cited sources
+  Slide 6: Traction — Day 1/Day 7 metrics, UAT NPS score, farmer quotes
+  Slide 7: Why Now — policy tailwinds (Digital India, PM-KISAN), smartphone penetration data
+  Slide 8: Business Model — Phase 2 monetisation (marketplace fees, premium listings, expert calls)
+  Slide 9: Year 1 Projections — users, revenue (conservative and optimistic)
+  Slide 10: Competition — feature comparison table vs DeHaat/BigHaat/AgriBazaar
+  Slide 11: Team — Kartik + Umang + Harsh photos, roles, and 1-line bio each
+  Slide 12: Ask — funding amount, use of funds breakdown, contact details","⬜ To Do","Sat D96","Critical"
+"W16-D93-B","16","D93","Wednesday","Umang (B)","Backend · DevOps · APIs","W16 — 🚀 Public Launch","One-Pager Executive Summary","• Create 1-page A4 PDF executive summary (beautifully designed in Figma)
+• Content sections: Problem (2 sentences), Solution (3 sentences), Key Metrics (Day 1 data), Market (1 number), Team (3 names), Ask (1 number)
+• Design: on-brand green colours, app screenshots as sidebar, QR code linking to Play Store download
+• Export as PDF at 300 DPI
+• Upload to Notion + create shortened URL (bit.ly or similar)
+• Personalise version: add investor's name + their portfolio company relevance for each individual outreach email","⬜ To Do","Sat D96","Critical"
+"W16-D93-C","16","D93","Wednesday","Harsh (C)","QA · Research · Support","W16 — 🚀 Public Launch","Accelerator Applications Research & Start","• Research these accelerators and check current application status:
+  Y Combinator (YC) — batch application, check open date
+  Surge by Sequoia Capital India — check cohort dates
+  T-Hub Hyderabad — check open cohort
+  NASSCOM DeepTech Club — check eligibility
+  FICCI AgriTech Accelerator — check timeline
+• Identify the 3 most relevant and currently open applications
+• Start YC Application Form: fill company description, problem, solution, traction sections thoroughly
+• Create shared Google Doc: 'Common Application Answers' — reusable answers to avoid rewriting for each program","⬜ To Do","Sat D96","Critical"
+"W16-D94-A","16","D94","Thursday","Kartik (A)","Product · UI/UX · Frontend","W16 — 🚀 Public Launch","Week 1 Post-Launch Metrics Review","• Compile complete Week 1 metrics report in Notion (PostHog + Play Store + Sentry + user interviews)
+  Key metrics: total installs, total active users, D1 retention %, D7 retention %, average session length, most-used features (by event count), most common exit points
+• Create 'What Works / What Doesn't' analysis based on data
+• Top 3 features used most → double down in Phase 2
+• Top 3 drop-off screens → identify and prioritise UX fixes
+• Update investor deck Slide 6 (Traction) with real Week 1 numbers","⬜ To Do","Sat D96","Critical"
+"W16-D94-B","16","D94","Thursday","Umang (B)","Backend · DevOps · APIs","W16 — 🚀 Public Launch","Phase 2 Technical Planning","• Review Phase 2 scope from Section 07 of blueprint: Razorpay payments, Equipment Rental full flow, Expert Video Consultations, Voice Navigation, 8+ languages
+• Estimate development effort for each Phase 2 feature: Small (1 week) / Medium (2–3 weeks) / Large (4+ weeks)
+• Research Razorpay integration requirements: KYC process for marketplace payments, API documentation
+• Research Agora SDK for video consultation feature (expert video calls)
+• Create Phase 2 GitHub milestones and placeholder issues — ready to sprint immediately after funding
+• Document technical debt from MVP that needs cleanup in Phase 2","⬜ To Do","Sat D96","Critical"
+"W16-D94-C","16","D94","Thursday","Harsh (C)","QA · Research · Support","W16 — 🚀 Public Launch","Investor Outreach Campaign Start","• LinkedIn research: identify 20 angel investors and VCs with AgriTech India portfolio
+  Focus on: Omnivore Partners, NABVENTURES, Ankur Capital, Aavishkaar, Accel India, Sequoia Surge alumni
+• For each investor: check their recent investments, portfolio focus, LinkedIn activity
+• Draft personalised cold outreach email template (maximum 3 short paragraphs):
+  Para 1: Why this investor specifically (reference their portfolio)
+  Para 2: What we built + key traction metric (one number)
+  Para 3: Ask — '15-minute call to show you the app?'
+• Send first 5 outreach emails today — track responses in Notion CRM table","⬜ To Do","Sat D96","Critical"
+"W16-D95-A","16","D95","Friday","Kartik (A)","Product · UI/UX · Frontend","W16 — 🚀 Public Launch","Professional Demo Video Production","• Record 2–3 minute professional app demo walkthrough on a clean device
+• Sections to cover in order: Splash + Onboarding (30s) → Home Dashboard (20s) → Weather (20s) → Mandi Prices (20s) → AI Pest Scan (30s) → Community (15s) → Marketplace (15s) → Leaderboard (10s)
+• Edit video: add background music (free agricultural/uplifting track from YouTube Audio Library), Hindi + English captions, KrishiSahayak logo watermark, end card with Play Store QR code
+• Upload to YouTube as unlisted (for investor sharing) and public (for marketing)
+• Embed video in investor pitch deck (Slide 4) and landing page hero section","⬜ To Do","Sat D96","Critical"
+"W16-D95-B","16","D95","Friday","Umang (B)","Backend · DevOps · APIs","W16 — 🚀 Public Launch","Production Stability Review & Disaster Recovery","• Review last 5 days of Sentry error logs: categorise each error by frequency and severity
+• Review Supabase slow query log: identify any query consistently taking > 300ms → add index or optimise
+• Deploy any stability hotfixes found during this review (small fixes only — no new features)
+• Document 'Known Limitations' list: things that don't work perfectly in v1.0 → include in investor transparency section
+• Write Disaster Recovery Runbook in Notion: step-by-step procedure for DB backup, restoration, and rollback if needed","⬜ To Do","Sat D96","Critical"
+"W16-D95-C","16","D95","Friday","Harsh (C)","QA · Research · Support","W16 — 🚀 Public Launch","Team Retrospective & Celebration","• Hold formal 1-hour team retrospective (can be in-person, video call, or WhatsApp voice)
+• Discuss three questions:
+  (1) What went well that we should keep doing in Phase 2?
+  (2) What was difficult and how would we do it differently?
+  (3) What did we learn about building a product, working as a team, and farming in India?
+• Document key learnings in Notion page: 'KrishiSahayak MVP Retrospective'
+• Update each team member's LinkedIn profile: 'Co-Founder & [Role], KrishiSahayak — Launched on Google Play Store'
+• Take a team photo together (or selfie collage) for company story documentation
+• Celebrate — you shipped a global-quality product in 16 weeks as college students 🌾🎉","⬜ To Do","Sat D96","Critical"
+"W16-D96-ALL","16","D96","Saturday","All (Kartik + Umang + Harsh)","Full Team Sync","W16 — 🚀 Public Launch","Week 16 Final Sync — MVP COMPLETE","• Verify: Play Store app live and publicly downloadable
+• Verify: Apple App Store approved and live (or review in final stages)
+• Verify: landing page krishisahayak.com live and fully functional
+• Verify: Product Hunt launched
+• Verify: investor pitch deck complete with real Day 7 metrics
+• Verify: demo video uploaded to YouTube and embedded in deck
+• Verify: accelerator applications started
+• Verify: investor outreach begun (first 5 emails sent)
+• Verify: Week 1 metrics captured and documented
+• Verify: Phase 2 GitHub milestones created
+• 🌾 MVP SPRINT IS COMPLETE — 96 days, 3 members, 1 global-grade product.","⬜ To Do","Sat D96","Critical"

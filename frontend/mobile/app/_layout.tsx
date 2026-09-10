@@ -7,6 +7,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+type TabBarIconProps = {
+  color: string;
+};
+
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -22,7 +26,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ color }: TabBarIconProps) => (
             <IconSymbol size={26} name="house.fill" color={color} />
           ),
         }}
@@ -32,7 +36,7 @@ export default function TabLayout() {
         name="market"
         options={{
           title: 'Markets',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ color }: TabBarIconProps) => (
             <IconSymbol size={26} name="chart.bar.fill" color={color} />
           ),
         }}
@@ -44,7 +48,7 @@ export default function TabLayout() {
           name="map"
           options={{
             title: 'Mandis',
-            tabBarIcon: ({ color }) => (
+            tabBarIcon: ({ color }: TabBarIconProps) => (
               <IconSymbol size={26} name="map.fill" color={color} />
             ),
           }}
@@ -55,7 +59,7 @@ export default function TabLayout() {
         name="alerts"
         options={{
           title: 'Alerts',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ color }: TabBarIconProps) => (
             <IconSymbol size={26} name="bell.fill" color={color} />
           ),
         }}
@@ -65,7 +69,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color }) => (
+          tabBarIcon: ({ color }: TabBarIconProps) => (
             <IconSymbol size={26} name="paperplane.fill" color={color} />
           ),
         }}
