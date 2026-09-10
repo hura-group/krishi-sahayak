@@ -15,12 +15,13 @@
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["apps/mobile/src/*"],
-      "@web/*": ["apps/web/*"]
+      "@/*": ["frontend/mobile/src/*"],
+      "@web/*": ["frontend/web/*"]
     }
   },
   "include": [
-    "apps/mobile/src/**/*"
+    "frontend/mobile/src/**/*",
+    "frontend/web/**/*"
   ],
   "exclude": [
     "node_modules",
