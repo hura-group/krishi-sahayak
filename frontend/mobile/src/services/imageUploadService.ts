@@ -1,0 +1,144 @@
+import * as ImageManipulator from 'expo-image-manipulator';
+import { supabase } from '../lib/supabase';
+
+export interface UploadedImage {
+  originalUrl: string;
+  thumbnailUrl: string;
+}
+
+// Resize image before upload
+export const resizeImage = async (
+  imageUri: string,
+  maxWidth: number = 1200,
+  maxHeight: number = 900,
+  quality: number = 0.85
+): Promise<string> => {
+  const result = await ImageManipulator.manipulateAsync(
+    imageUri,
+    [{ resize: { width: maxWidth, height: maxHeight } }],
+    {
+      compress: quality,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }
+  );
+  return result.uri;
+};
+
+// Generate thumbnail
+export const generateThumbnail = async (
+  imageUri: string
+): Promise<string> => {
+  const result = await ImageManipulator.manipulateAsync(
+    imageUri,
+    [{ resize: { width: 400, height: 300 } }],
+    {
+      compress: 0.7,
+      format: ImageManipulator.SaveFormat.JPEG,
+    }
+  );
+  return result.uri;
+};
+
+// Convert URI to blob
+const uriToBlob = async (uri: string): Promise<Blob> => {
+  const res = await fetch(uri);
+  return res.blob();
+};
+
+// Upload single image to Supabase Storage
+export const uploadListingImage = async (
+  listingId: string,
+  imageUri: string,
+  index: number
+): Promise<UploadedImage | null> => {
+  try {
+    const timestamp = Date.now();
+
+    // Resize original image
+    const resizedUri = await resizeImage(imageUri);
+    const thumbnailUri = await generateThumbnail(imageUri);
+
+    // Upload original
+    const originalPath = `marketplace/${listingId}/${timestamp}_${index}.jpg`;
+    const originalBlob = await uriToBlob(resizedUri);
+
+    const { error: originalError } = await supabase.storage
+      .from('marketplace')
+      .upload(originalPath, originalBlob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (originalError) return null;
+
+    // Upload thumbnail
+    const thumbnailPath = `marketplace/${listingId}/thumb_${timestamp}_${index}.jpg`;
+    const thumbnailBlob = await uriToBlob(thumbnailUri);
+
+    const { error: thumbError } = await supabase.storage
+      .from('marketplace')
+      .upload(thumbnailPath, thumbnailBlob, {
+        contentType: 'image/jpeg',
+        upsert: true,
+      });
+
+    if (thumbError) return null;
+
+    // Get public URLs
+    const { data: originalData } = supabase.storage
+      .from('marketplace')
+      .getPublicUrl(originalPath);
+
+    const { data: thumbData } = supabase.storage
+      .from('marketplace')
+      .getPublicUrl(thumbnailPath);
+
+    return {
+      originalUrl: originalData.publicUrl,
+      thumbnailUrl: thumbData.publicUrl,
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Upload multiple images
+export const uploadListingImages = async (
+  listingId: string,
+  imageUris: string[]
+): Promise<string[]> => {
+  const uploadedUrls: string[] = [];
+
+  for (let i = 0; i < imageUris.length; i++) {
+    const result = await uploadListingImage(listingId, imageUris[i], i);
+    if (result) {
+      uploadedUrls.push(result.originalUrl);
+    }
+  }
+
+  // Update listing with image URLs
+  await supabase
+    .from('marketplace_listings')
+    .update({ images: uploadedUrls })
+    .eq('id', listingId);
+
+  return uploadedUrls;
+};
+
+// Clean up images when listing deleted
+export const deleteListingImages = async (listingId: string) => {
+  try {
+    const { data: files } = await supabase.storage
+      .from('marketplace')
+      .list(`marketplace/${listingId}`);
+
+    if (files && files.length > 0) {
+      const paths = files.map(
+        (f) => `marketplace/${listingId}/${f.name}`
+      );
+      await supabase.storage.from('marketplace').remove(paths);
+    }
+  } catch {
+    // ignore cleanup errors
+  }
+};

@@ -1,0 +1,96 @@
+import * as Sentry from '@sentry/react-native';
+import { supabase } from '../lib/supabase';
+
+const PLANTID_DAILY_LIMIT = 100;
+const ALERT_THRESHOLD = 80;
+
+export interface UsageStatus {
+  currentCount: number;
+  limit: number;
+  remaining: number;
+  isLimitReached: boolean;
+  isApproachingLimit: boolean;
+}
+
+// Get current daily usage
+export const getDailyUsage = async (
+  apiName: string
+): Promise<number> => {
+  const { data, error } = await supabase
+    .rpc('get_daily_usage', { p_api_name: apiName });
+  if (error) return 0;
+  return data ?? 0;
+};
+
+// Check if API call is allowed
+export const checkRateLimit = async (
+  apiName: string
+): Promise<UsageStatus> => {
+  const currentCount = await getDailyUsage(apiName);
+  const remaining = PLANTID_DAILY_LIMIT - currentCount;
+  const isLimitReached = currentCount >= PLANTID_DAILY_LIMIT;
+  const isApproachingLimit = currentCount >= ALERT_THRESHOLD;
+
+  // Alert Sentry when approaching limit
+  if (isApproachingLimit && !isLimitReached) {
+    Sentry.captureMessage('Plant.id API approaching daily limit', {
+      level: 'warning',
+      tags: { feature: 'pest_detection', api: apiName },
+      extra: { currentCount, limit: PLANTID_DAILY_LIMIT },
+    });
+  }
+
+  return {
+    currentCount,
+    limit: PLANTID_DAILY_LIMIT,
+    remaining,
+    isLimitReached,
+    isApproachingLimit,
+  };
+};
+
+// Increment usage counter
+export const incrementUsage = async (
+  apiName: string,
+  userId: string,
+  costUsd: number = 0
+): Promise<number> => {
+  const { data, error } = await supabase.rpc('increment_api_usage', {
+    p_api_name: apiName,
+    p_user_id: userId,
+    p_cost: costUsd,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Check if user can make API call
+export const canMakeAPICall = async (
+  apiName: string,
+  userId: string,
+  isPaidUser: boolean = false
+): Promise<{ allowed: boolean; reason?: string }> => {
+  const status = await checkRateLimit(apiName);
+
+  // Paid users always get immediate access
+  if (isPaidUser) {
+    return { allowed: true };
+  }
+
+  // Free users wait if limit reached
+  if (status.isLimitReached) {
+    return {
+      allowed: false,
+      reason: 'Daily limit reached. Your request will be processed tomorrow.',
+    };
+  }
+
+  return { allowed: true };
+};
+
+// Get usage stats for display
+export const getUsageStats = async (
+  apiName: string
+): Promise<UsageStatus> => {
+  return checkRateLimit(apiName);
+};

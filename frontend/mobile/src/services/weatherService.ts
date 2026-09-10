@@ -1,0 +1,21 @@
+import { supabase } from '../lib/supabase';
+
+// Get weather data (with caching)
+export const getWeatherData = async (lat: number, lng: number) => {
+  const { data, error } = await supabase.functions.invoke('weather-cache', {
+    body: { lat, lng },
+  });
+  if (error) throw error;
+  return data;
+};
+
+// Invalidate cache on location change
+export const invalidateWeatherCache = async (lat: number, lng: number) => {
+  const { error } = await supabase
+    .from('weather_cache')
+    .delete()
+    .eq('lat', lat)
+    .eq('lng', lng);
+  if (error) throw error;
+  return true;
+};

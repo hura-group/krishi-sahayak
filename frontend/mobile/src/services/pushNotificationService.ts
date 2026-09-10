@@ -1,0 +1,58 @@
+import { supabase } from '../lib/supabase';
+
+// Save FCM token for user
+export const saveFCMToken = async (
+  userId: string,
+  fcmToken: string
+) => {
+  const { error } = await supabase
+    .from('users')
+    .update({ fcm_token: fcmToken })
+    .eq('id', userId);
+  if (error) throw error;
+  return true;
+};
+
+// Send breaking news notification
+export const sendBreakingNewsNotification = async (
+  articleId: string,
+  state?: string
+) => {
+  const { data, error } = await supabase.functions.invoke(
+    'send-breaking-news',
+    { body: { article_id: articleId, state } }
+  );
+  if (error) throw error;
+  return data;
+};
+
+// Mark article as breaking news
+export const markAsBreaking = async (
+  articleId: string,
+  state?: string
+) => {
+  const { error } = await supabase
+    .from('news_articles')
+    .update({
+      is_breaking: true,
+      breaking_state: state ?? null,
+    })
+    .eq('id', articleId);
+  if (error) throw error;
+
+  // Send push notification
+  await sendBreakingNewsNotification(articleId, state);
+  return true;
+};
+
+// Get breaking news articles
+export const getBreakingNews = async () => {
+  const { data, error } = await supabase
+    .from('news_articles')
+    .select('*')
+    .eq('is_breaking', true)
+    .order('published_at', { ascending: false })
+    .limit(5);
+  if (error) throw error;
+  return data ?? [];
+};

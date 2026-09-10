@@ -1,0 +1,105 @@
+// Recent searches storage (in-memory, MMKV when available)
+const MAX_RECENT = 5;
+let recentSearches: SearchLocation[] = [];
+
+export interface SearchLocation {
+  city: string;
+  district: string;
+  state: string;
+  lat: number;
+  lng: number;
+}
+
+// Save recent search location
+export const saveRecentSearch = (location: SearchLocation) => {
+  try {
+    // Remove duplicate if exists
+    recentSearches = recentSearches.filter(
+      (l) => l.city !== location.city
+    );
+
+    // Add to front
+    recentSearches.unshift(location);
+
+    // Keep max 5
+    if (recentSearches.length > MAX_RECENT) {
+      recentSearches = recentSearches.slice(0, MAX_RECENT);
+    }
+
+    // Save to MMKV
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      storage.set('recent_searches', JSON.stringify(recentSearches));
+    } catch {
+      // ignore
+    }
+  } catch {
+    // ignore
+  }
+};
+
+// Get recent searches
+export const getRecentSearches = (): SearchLocation[] => {
+  try {
+    const { MMKV } = require('react-native-mmkv');
+    const storage = new MMKV();
+    const saved = storage.getString('recent_searches');
+    if (saved) {
+      recentSearches = JSON.parse(saved);
+    }
+  } catch {
+    // ignore
+  }
+  return recentSearches;
+};
+
+// Clear recent searches
+export const clearRecentSearches = () => {
+  recentSearches = [];
+  try {
+    const { MMKV } = require('react-native-mmkv');
+    const storage = new MMKV();
+    storage.delete('recent_searches');
+  } catch {
+    // ignore
+  }
+};
+
+// Get coordinates from city name using OpenWeatherMap Geocoding
+export const getCityCoordinates = async (
+  cityName: string
+): Promise<{ lat: number; lng: number } | null> => {
+  try {
+    const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+    const res = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cityName)},IN&limit=1&appid=${apiKey}`
+    );
+    const data = await res.json();
+
+    if (data.length > 0) {
+      return { lat: data[0].lat, lng: data[0].lon };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Search Indian cities
+export const searchIndianCities = async (query: string): Promise<string[]> => {
+  if (query.length < 2) return [];
+
+  try {
+    const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+    const res = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)},IN&limit=5&appid=${apiKey}`
+    );
+    const data = await res.json();
+    return data.map((item: any) => 
+      `${item.name}${item.state ? ', ' + item.state : ''}`
+    );
+  } catch {
+    return [];
+  }
+};

@@ -1,0 +1,90 @@
+import { supabase } from '../lib/supabase';
+
+// Block a user
+export const blockUser = async (
+  blockerId: string,
+  blockedId: string
+) => {
+  const { error } = await supabase.rpc('block_user', {
+    p_blocker_id: blockerId,
+    p_blocked_id: blockedId,
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Unblock a user
+export const unblockUser = async (
+  blockerId: string,
+  blockedId: string
+) => {
+  const { error } = await supabase.rpc('unblock_user', {
+    p_blocker_id: blockerId,
+    p_blocked_id: blockedId,
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Check if user is blocked
+export const isUserBlocked = async (
+  blockerId: string,
+  blockedId: string
+): Promise<boolean> => {
+  const { data } = await supabase
+    .from('block_list')
+    .select('id')
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId)
+    .single();
+
+  return !!data;
+};
+
+// Get block list
+export const getBlockList = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('block_list')
+    .select('blocked_id, created_at')
+    .eq('blocker_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Check rate limit
+export const checkRateLimit = async (
+  userId: string
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .rpc('check_message_rate_limit', { p_user_id: userId });
+
+  if (error) return true;
+  return data ?? true;
+};
+
+// Report message
+export const reportMessage = async (
+  messageId: string,
+  reporterId: string,
+  reason: string
+) => {
+  const { error } = await supabase.rpc('report_message', {
+    p_message_id: messageId,
+    p_reporter_id: reporterId,
+    p_reason: reason,
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Get report reasons
+export const getChatReportReasons = () => [
+  'Spam',
+  'Harassment',
+  'Inappropriate Content',
+  'Scam',
+  'Fake Account',
+  'Other',
+];

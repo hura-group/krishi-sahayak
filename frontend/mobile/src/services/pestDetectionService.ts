@@ -1,0 +1,163 @@
+import { supabase } from '../lib/supabase';
+
+export interface DiseaseResult {
+  isHealthy: boolean;
+  diseaseName: string;
+  probability: number;
+  description: string;
+  treatment: string;
+  cropName: string;
+}
+
+// Detect crop disease using Plant.id API
+export const detectCropDisease = async (
+  imageBase64: string
+): Promise<DiseaseResult> => {
+  try {
+    const apiKey = process.env.EXPO_PUBLIC_PLANTID_API_KEY ?? '';
+
+    const response = await fetch(
+      'https://plant.id/api/v3/health_assessment',
+      {
+        method: 'POST',
+        headers: {
+          'Api-Key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          images: [`data:image/jpeg;base64,${imageBase64}`],
+          health: 'all',
+          language: 'en',
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Plant.id API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return parseHealthAssessment(data);
+  } catch (err: any) {
+    // Return fallback on error
+    return {
+      isHealthy: false,
+      diseaseName: 'Detection Failed',
+      probability: 0,
+      description: 'Unable to detect disease. Please try again.',
+      treatment: 'Take a clearer photo of the affected crop area.',
+      cropName: 'Unknown',
+    };
+  }
+};
+
+// Parse Plant.id health assessment response
+const parseHealthAssessment = (data: any): DiseaseResult => {
+  const result = data.result;
+
+  // Check if plant is healthy
+  const isHealthy = result?.is_healthy?.binary ?? false;
+  const healthProbability = result?.is_healthy?.probability ?? 0;
+
+  if (isHealthy && healthProbability > 0.7) {
+    return {
+      isHealthy: true,
+      diseaseName: 'No Disease Detected ?',
+      probability: healthProbability,
+      description: 'Your crop appears to be healthy!',
+      treatment: 'Continue regular care and monitoring.',
+      cropName: result?.classification?.suggestions?.[0]?.name ?? 'Unknown',
+    };
+  }
+
+  // Get top disease
+  const diseases = result?.disease?.suggestions ?? [];
+  if (diseases.length === 0) {
+    return {
+      isHealthy: true,
+      diseaseName: 'No Disease Detected ?',
+      probability: 1,
+      description: 'No diseases found in the image.',
+      treatment: 'Continue regular care.',
+      cropName: 'Unknown',
+    };
+  }
+
+  const topDisease = diseases[0];
+  const details = topDisease.details ?? {};
+
+  return {
+    isHealthy: false,
+    diseaseName: topDisease.name ?? 'Unknown Disease',
+    probability: topDisease.probability ?? 0,
+    description: details.description ?? 'Disease detected in your crop.',
+    treatment: details.treatment?.biological?.[0] ??
+      details.treatment?.chemical?.[0] ??
+      'Consult your local agricultural officer.',
+    cropName: result?.classification?.suggestions?.[0]?.name ?? 'Unknown',
+  };
+};
+
+// Upload image to Supabase Storage
+export const uploadPestImage = async (
+  userId: string,
+  imageBase64: string
+): Promise<string | null> => {
+  try {
+    const filePath = `pest-detections/${userId}/${Date.now()}.jpg`;
+    const blob = await fetch(
+      `data:image/jpeg;base64,${imageBase64}`
+    ).then((r) => r.blob());
+
+    const { error } = await supabase.storage
+      .from('pest-detections')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (error) return null;
+
+    const { data } = supabase.storage
+      .from('pest-detections')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+};
+
+// Save detection to database
+export const savePestDetection = async (
+  userId: string,
+  imageUrl: string,
+  result: DiseaseResult,
+  rawResponse?: any
+) => {
+  const { data, error } = await supabase.rpc('insert_pest_detection', {
+    p_user_id: userId,
+    p_image_url: imageUrl,
+    p_detected_disease: result.diseaseName,
+    p_confidence_score: result.probability,
+    p_recommendation: result.treatment,
+    p_crop_name: result.cropName,
+    p_raw_response: rawResponse ?? null,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+// Get detection history
+export const getPestDetectionHistory = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('pest_detections')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return data ?? [];
+};

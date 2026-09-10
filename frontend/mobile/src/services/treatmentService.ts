@@ -1,0 +1,144 @@
+import { supabase } from '../lib/supabase';
+
+export interface TreatmentSection {
+  organic: TreatmentItem;
+  chemical: TreatmentItem;
+  prevention: TreatmentItem;
+}
+
+export interface TreatmentItem {
+  title: string;
+  description: string;
+  icon: string;
+  steps: string[];
+}
+
+// Get full treatment plan for a disease
+export const getTreatmentPlan = async (
+  diseaseName: string
+): Promise<TreatmentSection | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('disease_treatments')
+      .select('*')
+      .ilike('disease_name', `%${diseaseName}%`)
+      .limit(1)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      organic: {
+        title: 'Organic Treatment',
+        description: data.organic_treatment,
+        icon: '??',
+        steps: data.organic_treatment.split(',').map((s: string) => s.trim()),
+      },
+      chemical: {
+        title: 'Chemical Treatment',
+        description: data.chemical_treatment,
+        icon: '??',
+        steps: data.chemical_treatment.split(',').map((s: string) => s.trim()),
+      },
+      prevention: {
+        title: 'Prevention Tips',
+        description: data.prevention,
+        icon: '???',
+        steps: data.prevention.split(',').map((s: string) => s.trim()),
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Generate share text for WhatsApp
+export const generateShareText = (
+  diseaseName: string,
+  cropName: string,
+  confidence: number,
+  treatment: TreatmentSection | null
+): string => {
+  const confidencePercent = Math.round(confidence * 100);
+  
+  let text = `?? *KrishiSahayak - Pest Detection Report*\n\n`;
+  text += `?? *Disease:* ${diseaseName}\n`;
+  text += `?? *Crop:* ${cropName}\n`;
+  text += `?? *Confidence:* ${confidencePercent}%\n\n`;
+
+  if (treatment) {
+    text += `?? *Organic Treatment:*\n${treatment.organic.description}\n\n`;
+    text += `?? *Chemical Treatment:*\n${treatment.chemical.description}\n\n`;
+    text += `??? *Prevention:*\n${treatment.prevention.description}\n\n`;
+  }
+
+  text += `?? Download KrishiSahayak for more farming help!`;
+  return text;
+};
+
+// Delete pest detection + image from storage
+export const deletePestDetection = async (
+  detectionId: string,
+  imageUrl: string,
+  userId: string
+) => {
+  // Extract file path from URL
+  const urlParts = imageUrl.split('/pest-detections/');
+  if (urlParts.length > 1) {
+    const filePath = `pest-detections/${urlParts[1]}`;
+    await supabase.storage
+      .from('pest-detections')
+      .remove([filePath]);
+  }
+
+  // Delete from database
+  const { error } = await supabase
+    .from('pest_detections')
+    .delete()
+    .eq('id', detectionId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  return true;
+};
+
+// Get detection history grouped by month
+export const getDetectionHistoryGrouped = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('pest_detections')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  // Group by month
+  const grouped: Record<string, any[]> = {};
+  (data ?? []).forEach((detection) => {
+    const month = new Date(detection.created_at).toLocaleDateString(
+      'en-IN',
+      { month: 'long', year: 'numeric' }
+    );
+    if (!grouped[month]) grouped[month] = [];
+    grouped[month].push(detection);
+  });
+
+  return Object.entries(grouped).map(([month, detections]) => ({
+    title: month,
+    data: detections,
+  }));
+};
+
+// Get confidence color
+export const getConfidenceColor = (confidence: number): string => {
+  if (confidence >= 0.85) return '#4CAF50'; // green
+  if (confidence >= 0.60) return '#FFA500'; // yellow
+  return '#FF4444'; // red
+};
+
+// Get confidence label
+export const getConfidenceLabel = (confidence: number): string => {
+  if (confidence >= 0.85) return 'High Confidence';
+  if (confidence >= 0.60) return 'Medium Confidence';
+  return 'Low Confidence';
+};

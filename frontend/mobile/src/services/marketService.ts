@@ -1,0 +1,79 @@
+import { supabase } from '../lib/supabase';
+
+// Get price trend for a commodity
+export const getPriceTrend = async (
+  commodity: string,
+  state: string,
+  days: number = 7
+) => {
+  const { data, error } = await supabase.rpc('get_price_trend', {
+    p_commodity: commodity,
+    p_state: state,
+    p_days: days,
+  });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get latest market prices
+export const getLatestPrices = async (state?: string) => {
+  let query = supabase
+    .from('market_prices')
+    .select('*')
+    .eq('price_date', new Date().toISOString().split('T')[0])
+    .order('recorded_at', { ascending: false });
+
+  if (state) query = query.eq('state', state);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get market stats
+export const getMarketStats = async (
+  commodity: string,
+  state: string
+) => {
+  const { data, error } = await supabase
+    .from('market_stats')
+    .select('*')
+    .eq('crop_name', commodity)
+    .eq('state', state)
+    .order('calculated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Calculate daily price change
+export const getPriceChange = async (
+  commodity: string,
+  state: string
+): Promise<number> => {
+  const { data, error } = await supabase.rpc('calculate_price_change', {
+    p_commodity: commodity,
+    p_state: state,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Get top commodities by price
+export const getTopCommodities = async (
+  state: string,
+  limit: number = 5
+) => {
+  const { data, error } = await supabase
+    .from('market_prices')
+    .select('crop_name, price_per_kg, market_name, min_price, max_price')
+    .eq('state', state)
+    .eq('price_date', new Date().toISOString().split('T')[0])
+    .order('price_per_kg', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data ?? [];
+};

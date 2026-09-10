@@ -1,0 +1,110 @@
+import { AppState, AppStateStatus } from 'react-native';
+import { supabase } from '../lib/supabase';
+
+export type LiveStatus = 'live' | 'recent' | 'stale';
+
+// Get age of data in minutes
+export const getDataAgeMinutes = (recordedAt: string): number => {
+  const recorded = new Date(recordedAt).getTime();
+  return Math.floor((Date.now() - recorded) / 1000 / 60);
+};
+
+// Get live status
+export const getLiveStatus = (recordedAt: string): LiveStatus => {
+  const age = getDataAgeMinutes(recordedAt);
+  if (age < 5) return 'live';
+  if (age < 30) return 'recent';
+  return 'stale';
+};
+
+// Get human readable update time
+export const getUpdateLabel = (recordedAt: string): string => {
+  const age = getDataAgeMinutes(recordedAt);
+  if (age < 1) return 'Updated just now';
+  if (age < 60) return `Updated ${age} min ago`;
+  const hours = Math.floor(age / 60);
+  return `Updated ${hours} hour${hours > 1 ? 's' : ''} ago`;
+};
+
+// Fetch fresh market prices
+export const fetchFreshPrices = async (state: string) => {
+  const today = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('market_prices')
+    .select('*')
+    .eq('state', state)
+    .eq('price_date', today)
+    .order('recorded_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Market Auto Refresh Manager
+export class MarketAutoRefresh {
+  private interval: ReturnType<typeof setInterval> | null = null;
+  private appStateSubscription: any = null;
+  private state: string;
+  private onRefresh: (data: any[]) => void;
+  private onError: (error: any) => void;
+
+  constructor(
+    state: string,
+    onRefresh: (data: any[]) => void,
+    onError: (error: any) => void
+  ) {
+    this.state = state;
+    this.onRefresh = onRefresh;
+    this.onError = onError;
+  }
+
+  start() {
+    // Refresh every 60 seconds
+    this.interval = setInterval(async () => {
+      try {
+        const data = await fetchFreshPrices(this.state);
+        this.onRefresh(data);
+      } catch (error) {
+        this.onError(error);
+      }
+    }, 60 * 1000);
+
+    // Refresh when app comes to foreground
+    this.appStateSubscription = AppState.addEventListener(
+      'change',
+      async (state: AppStateStatus) => {
+        if (state === 'active') {
+          try {
+            const data = await fetchFreshPrices(this.state);
+            this.onRefresh(data);
+          } catch (error) {
+            this.onError(error);
+          }
+        }
+      }
+    );
+  }
+
+  // Manual refresh (always fetches fresh)
+  async manualRefresh() {
+    try {
+      const data = await fetchFreshPrices(this.state);
+      this.onRefresh(data);
+      return data;
+    } catch (error) {
+      this.onError(error);
+      throw error;
+    }
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+      this.appStateSubscription = null;
+    }
+  }
+}

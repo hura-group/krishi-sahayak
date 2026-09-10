@@ -1,0 +1,111 @@
+import { AppState, AppStateStatus } from 'react-native';
+import { supabase } from '../lib/supabase';
+
+// Cache status types
+export type CacheStatus = 'live' | 'stale' | 'expired' | 'none';
+
+// Check cache age in minutes
+export const getCacheAgeMinutes = (fetchedAt: string): number => {
+  const fetched = new Date(fetchedAt).getTime();
+  const now = Date.now();
+  return Math.floor((now - fetched) / 1000 / 60);
+};
+
+// Get cache status
+export const getCacheStatus = (fetchedAt: string): CacheStatus => {
+  const ageMinutes = getCacheAgeMinutes(fetchedAt);
+  if (ageMinutes < 5) return 'live';
+  if (ageMinutes < 30) return 'stale';
+  if (ageMinutes < 180) return 'expired';
+  return 'none';
+};
+
+// Get human readable time ago
+export const getTimeAgoLabel = (fetchedAt: string): string => {
+  const ageMinutes = getCacheAgeMinutes(fetchedAt);
+  if (ageMinutes < 1) return 'just now';
+  if (ageMinutes < 60) return `${ageMinutes} min ago`;
+  const hours = Math.floor(ageMinutes / 60);
+  return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+};
+
+// Check if weather needs refresh
+export const needsRefresh = (fetchedAt: string): boolean => {
+  return getCacheAgeMinutes(fetchedAt) >= 30;
+};
+
+// Fetch fresh weather and store in cache
+export const refreshWeatherCache = async (
+  lat: number,
+  lng: number
+): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('weather-cache', {
+      body: { lat, lng },
+    });
+    if (error) throw error;
+    return !!data;
+  } catch {
+    return false;
+  }
+};
+
+// Auto refresh manager
+export class WeatherAutoRefresh {
+  private interval: ReturnType<typeof setInterval> | null = null;
+  private appStateSubscription: any = null;
+  private lat: number;
+  private lng: number;
+  private onRefresh: () => void;
+
+  constructor(lat: number, lng: number, onRefresh: () => void) {
+    this.lat = lat;
+    this.lng = lng;
+    this.onRefresh = onRefresh;
+  }
+
+  start() {
+    // Refresh every 30 minutes
+    this.interval = setInterval(async () => {
+      await refreshWeatherCache(this.lat, this.lng);
+      this.onRefresh();
+    }, 30 * 60 * 1000);
+
+    // Refresh on app foreground
+    this.appStateSubscription = AppState.addEventListener(
+      'change',
+      async (state: AppStateStatus) => {
+        if (state === 'active') {
+          const cached = await this.getLatestCache();
+          if (cached && needsRefresh(cached.fetched_at)) {
+            await refreshWeatherCache(this.lat, this.lng);
+            this.onRefresh();
+          }
+        }
+      }
+    );
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+      this.appStateSubscription = null;
+    }
+  }
+
+  private async getLatestCache() {
+    const { data } = await supabase
+      .from('weather_cache')
+      .select('fetched_at')
+      .eq('lat', this.lat)
+      .eq('lng', this.lng)
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .single();
+    return data;
+  }
+}

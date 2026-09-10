@@ -1,0 +1,90 @@
+import { supabase } from '../lib/supabase';
+
+const PAGE_SIZE = 20;
+
+export interface NewsPage {
+  articles: any[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+// Cursor-based pagination
+export const getNewsPage = async (
+  cursor?: string,
+  category?: string
+): Promise<NewsPage> => {
+  let query = supabase
+    .from('news_articles')
+    .select('*')
+    .order('published_at', { ascending: false })
+    .limit(PAGE_SIZE + 1); // fetch one extra to check if there's more
+
+  // Apply cursor
+  if (cursor) {
+    query = query.lt('published_at', cursor);
+  }
+
+  // Apply category filter
+  if (category && category !== 'all') {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const articles = data ?? [];
+  const hasMore = articles.length > PAGE_SIZE;
+
+  // Remove the extra item
+  if (hasMore) articles.pop();
+
+  // Next cursor is the published_at of the last article
+  const nextCursor = hasMore && articles.length > 0
+    ? articles[articles.length - 1].published_at
+    : null;
+
+  return { articles, nextCursor, hasMore };
+};
+
+// Prefetch next page
+export const prefetchNextPage = async (
+  cursor: string,
+  category?: string
+): Promise<any[]> => {
+  const { articles } = await getNewsPage(cursor, category);
+  return articles;
+};
+
+// Upload image to Supabase Storage CDN
+export const uploadNewsImage = async (
+  imageUrl: string,
+  articleId: string
+): Promise<string | null> => {
+  try {
+    // Fetch image
+    const res = await fetch(imageUrl);
+    if (!res.ok) return null;
+
+    const blob = await res.blob();
+    const filePath = `news/${articleId}.jpg`;
+
+    // Upload to Supabase Storage
+    const { error } = await supabase.storage
+      .from('news-images')
+      .upload(filePath, blob, {
+        upsert: true,
+        contentType: 'image/jpeg',
+      });
+
+    if (error) return null;
+
+    // Get public URL
+    const { data } = supabase.storage
+      .from('news-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+};

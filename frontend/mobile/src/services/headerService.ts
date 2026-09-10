@@ -1,0 +1,69 @@
+import { supabase } from '../lib/supabase';
+import * as SecureStore from 'expo-secure-store';
+
+// Get unread notifications count
+export const getUnreadCount = async (userId: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_read', false);
+
+  if (error) throw error;
+  return count ?? 0;
+};
+
+// Logout - clear session and SecureStore
+export const logout = async () => {
+  // Sign out from Supabase
+  await supabase.auth.signOut();
+
+  // Clear all SecureStore keys
+  const keys = [
+    'supabase.auth.token',
+    'supabase.auth.refreshToken',
+  ];
+
+  for (const key of keys) {
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {
+      // ignore if key doesn't exist
+    }
+  }
+
+  return true;
+};
+
+// Get user profile for drawer
+export const getDrawerProfile = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select(`
+      id,
+      full_name,
+      phone,
+      avatar_url,
+      state,
+      district,
+      role
+    `)
+    .eq('id', userId)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Get farm details for drawer
+export const getDrawerFarms = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('farms')
+    .select('farm_name, area_acres, soil_type')
+    .eq('user_id', userId)
+    .limit(3);
+
+  if (error) throw error;
+  return data ?? [];
+};
+

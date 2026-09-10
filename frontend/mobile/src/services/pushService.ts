@@ -1,0 +1,139 @@
+import { supabase } from '../lib/supabase';
+
+export type NotificationType =
+  | 'PRICE_ALERT'
+  | 'WEATHER_ALERT'
+  | 'NEW_MESSAGE'
+  | 'COMMUNITY_REPLY'
+  | 'STREAK_REMINDER'
+  | 'WEEKLY_SUMMARY'
+  | 'BREAKING_NEWS'
+  | 'RENTAL_REQUEST'
+  | 'PEST_DETECTION';
+
+// Send push notification to users
+export const sendPushNotification = async (
+  userIds: string[],
+  type: NotificationType,
+  title: string,
+  body: string,
+  data?: Record<string, any>
+) => {
+  const { data: result, error } = await supabase.functions.invoke(
+    'send-push-notification',
+    { body: { user_ids: userIds, type, title, body, data } }
+  );
+  if (error) throw error;
+  return result;
+};
+
+// Send price alert
+export const sendPriceAlert = async (
+  userId: string,
+  cropName: string,
+  currentPrice: number,
+  alertPrice: number
+) => {
+  return sendPushNotification(
+    [userId],
+    'PRICE_ALERT',
+    '?? Price Alert!',
+    `${cropName} price is now ?${currentPrice}/kg (Alert: ?${alertPrice})`,
+    { crop_name: cropName, price: currentPrice }
+  );
+};
+
+// Send weather alert
+export const sendWeatherAlert = async (
+  userIds: string[],
+  condition: string,
+  location: string
+) => {
+  return sendPushNotification(
+    userIds,
+    'WEATHER_ALERT',
+    '?? Weather Alert!',
+    `${condition} expected at ${location}. Take precautions.`,
+    { condition, location }
+  );
+};
+
+// Send new message notification
+export const sendMessageNotification = async (
+  recipientId: string,
+  senderName: string,
+  message: string,
+  conversationId: string
+) => {
+  return sendPushNotification(
+    [recipientId],
+    'NEW_MESSAGE',
+    `?? ${senderName}`,
+    message,
+    { conversation_id: conversationId }
+  );
+};
+
+// Send community reply notification
+export const sendCommunityReplyNotification = async (
+  postOwnerId: string,
+  replierName: string,
+  postId: string
+) => {
+  return sendPushNotification(
+    [postOwnerId],
+    'COMMUNITY_REPLY',
+    '?? New Reply',
+    `${replierName} replied to your post`,
+    { post_id: postId }
+  );
+};
+
+// Send streak reminder at 7 PM
+export const sendStreakReminder = async (userIds: string[]) => {
+  return sendPushNotification(
+    userIds,
+    'STREAK_REMINDER',
+    '?? Don\'t break your streak!',
+    'Open KrishiSahayak to keep your streak alive!',
+    {}
+  );
+};
+
+// Send weekly XP summary
+export const sendWeeklySummary = async (
+  userId: string,
+  xpEarned: number,
+  rank: number
+) => {
+  return sendPushNotification(
+    [userId],
+    'WEEKLY_SUMMARY',
+    '?? Weekly Summary',
+    `You earned ${xpEarned} XP this week! Your rank: #${rank}`,
+    { xp_earned: xpEarned, rank }
+  );
+};
+
+// Get notification logs
+export const getNotificationLogs = async (
+  userId: string,
+  limit: number = 50
+) => {
+  const { data, error } = await supabase
+    .from('notification_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .order('sent_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Mark notification as opened
+export const markNotificationOpened = async (notificationId: string) => {
+  await supabase.rpc('mark_notification_opened', {
+    p_notification_id: notificationId,
+  });
+};

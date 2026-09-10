@@ -1,0 +1,65 @@
+import { supabase } from '../lib/supabase';
+
+// Get user profile
+export const getUserProfile = async (userId: string) => {
+  const { data, error } = await supabase
+    .rpc('get_user_profile', { p_id: userId });
+  if (error) throw error;
+  return data?.[0] ?? null;
+};
+
+// Upsert user profile
+export const upsertUserProfile = async (profile: {
+  id: string;
+  full_name: string;
+  phone: string;
+  avatar_url?: string;
+  language?: string;
+  state?: string;
+  district?: string;
+  role?: string;
+}) => {
+  const { error } = await supabase.rpc('upsert_user_profile', {
+    p_id: profile.id,
+    p_full_name: profile.full_name,
+    p_phone: profile.phone,
+    p_avatar_url: profile.avatar_url ?? null,
+    p_language: profile.language ?? 'en',
+    p_state: profile.state ?? null,
+    p_district: profile.district ?? null,
+    p_role: profile.role ?? 'farmer',
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Upload avatar to Supabase Storage
+export const uploadAvatar = async (userId: string, uri: string) => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  const fileExt = uri.split('.').pop() ?? 'jpg';
+  const filePath = `${userId}/avatar.${fileExt}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(filePath, blob, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+// Update avatar URL in users table
+export const updateAvatarUrl = async (userId: string, avatarUrl: string) => {
+  const { error } = await supabase
+    .from('users')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', userId);
+  if (error) throw error;
+  return true;
+};

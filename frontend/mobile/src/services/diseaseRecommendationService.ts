@@ -1,0 +1,90 @@
+import { supabase } from '../lib/supabase';
+
+export interface TreatmentRecommendation {
+  diseaseName: string;
+  cropName: string;
+  organicTreatment: string;
+  chemicalTreatment: string;
+  prevention: string;
+  severity: string;
+  source: 'local' | 'plantid';
+}
+
+// Get recommendation from local DB first
+export const getRecommendation = async (
+  diseaseName: string,
+  plantIdSuggestion?: string
+): Promise<TreatmentRecommendation | null> => {
+  try {
+    // Search local DB first
+    const { data, error } = await supabase
+      .from('disease_treatments')
+      .select('*')
+      .ilike('disease_name', `%${diseaseName}%`)
+      .limit(1)
+      .single();
+
+    if (!error && data) {
+      return {
+        diseaseName: data.disease_name,
+        cropName: data.crop_name,
+        organicTreatment: data.organic_treatment,
+        chemicalTreatment: data.chemical_treatment,
+        prevention: data.prevention,
+        severity: data.severity,
+        source: 'local',
+      };
+    }
+
+    // Fallback to Plant.id suggestion
+    if (plantIdSuggestion) {
+      return {
+        diseaseName,
+        cropName: 'Unknown',
+        organicTreatment: plantIdSuggestion,
+        chemicalTreatment: 'Consult your local agricultural officer',
+        prevention: 'Monitor crops regularly',
+        severity: 'moderate',
+        source: 'plantid',
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Get all treatments for a crop
+export const getTreatmentsForCrop = async (cropName: string) => {
+  const { data, error } = await supabase
+    .from('disease_treatments')
+    .select('*')
+    .ilike('crop_name', `%${cropName}%`)
+    .order('severity', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Search diseases
+export const searchDiseases = async (query: string) => {
+  const { data, error } = await supabase
+    .from('disease_treatments')
+    .select('*')
+    .or(`disease_name.ilike.%${query}%,crop_name.ilike.%${query}%`)
+    .limit(10);
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get severity color
+export const getSeverityColor = (severity: string): string => {
+  switch (severity) {
+    case 'high': return '#FF4444';
+    case 'moderate': return '#FFA500';
+    case 'low': return '#4CAF50';
+    default: return '#666666';
+  }
+};

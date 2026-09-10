@@ -1,0 +1,100 @@
+import * as Location from 'expo-location';
+
+// Location cache key for MMKV
+const LOCATION_CACHE_KEY = 'last_known_location';
+
+// Simple in-memory cache (MMKV will be used when available)
+let locationCache: { lat: number; lng: number; city: string } | null = null;
+
+// Request location permission
+export const requestLocationPermission = async (): Promise<boolean> => {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  return status === 'granted';
+};
+
+// Get current GPS coordinates
+export const getCurrentLocation = async () => {
+  try {
+    const hasPermission = await requestLocationPermission();
+
+    if (!hasPermission) {
+      // Return cached location if permission denied
+      return locationCache;
+    }
+
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+
+    const result = {
+      lat: location.coords.latitude,
+      lng: location.coords.longitude,
+      city: '',
+    };
+
+    // Cache the location
+    locationCache = result;
+
+    return result;
+  } catch (error) {
+    // Return cached location on error
+    return locationCache;
+  }
+};
+
+// Reverse geocode to get city/village name
+export const reverseGeocode = async (
+  lat: number,
+  lng: number
+): Promise<string> => {
+  try {
+    const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+
+    if (results.length > 0) {
+      const place = results[0];
+      const city =
+        place.city ||
+        place.district ||
+        place.subregion ||
+        place.region ||
+        'Unknown Location';
+      return city;
+    }
+
+    return 'Unknown Location';
+  } catch {
+    return 'Unknown Location';
+  }
+};
+
+// Get location with city name
+export const getLocationWithCity = async (
+  fallbackDistrict?: string
+): Promise<{ lat: number; lng: number; city: string } | null> => {
+  try {
+    const location = await getCurrentLocation();
+
+    if (!location) {
+      // Use fallback district from user profile
+      if (fallbackDistrict) {
+        return {
+          lat: 23.0333,
+          lng: 72.6167,
+          city: fallbackDistrict,
+        };
+      }
+      return null;
+    }
+
+    // Reverse geocode to get city name
+    const city = await reverseGeocode(location.lat, location.lng);
+    const result = { ...location, city };
+
+    // Cache with city
+    locationCache = result;
+
+    return result;
+  } catch {
+    return null;
+  }
+};

@@ -1,0 +1,155 @@
+import { supabase } from '../lib/supabase';
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  content: string;
+  likes_count: number;
+  reply_to_id: string | null;
+  created_at: string;
+}
+
+// Get comments for a post
+export const getComments = async (
+  postId: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<{ comments: Comment[]; nextCursor: string | null }> => {
+  let query = supabase
+    .from('community_comments')
+    .select('*')
+    .eq('post_id', postId)
+    .is('reply_to_id', null)
+    .order('created_at', { ascending: true })
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.gt('created_at', cursor);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const comments = data ?? [];
+  const hasMore = comments.length > limit;
+  if (hasMore) comments.pop();
+
+  const nextCursor = hasMore && comments.length > 0
+    ? comments[comments.length - 1].created_at
+    : null;
+
+  return { comments, nextCursor };
+};
+
+// Get replies for a comment
+export const getReplies = async (commentId: string) => {
+  const { data, error } = await supabase
+    .from('community_comments')
+    .select('*')
+    .eq('reply_to_id', commentId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Add comment
+export const addComment = async (
+  postId: string,
+  userId: string,
+  content: string,
+  replyToId?: string
+) => {
+  const { data, error } = await supabase
+    .from('community_comments')
+    .insert({
+      post_id: postId,
+      user_id: userId,
+      content,
+      reply_to_id: replyToId ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Delete comment
+export const deleteComment = async (commentId: string) => {
+  const { error } = await supabase
+    .from('community_comments')
+    .delete()
+    .eq('id', commentId);
+
+  if (error) throw error;
+  return true;
+};
+
+// Toggle comment like
+export const toggleCommentLike = async (
+  commentId: string,
+  userId: string
+): Promise<boolean> => {
+  const { data: existing } = await supabase
+    .from('comment_likes')
+    .select('id')
+    .eq('comment_id', commentId)
+    .eq('user_id', userId)
+    .single();
+
+  if (existing) {
+    await supabase
+      .from('comment_likes')
+      .delete()
+      .eq('comment_id', commentId)
+      .eq('user_id', userId);
+    return false;
+  } else {
+    await supabase
+      .from('comment_likes')
+      .insert({ comment_id: commentId, user_id: userId });
+    return true;
+  }
+};
+
+// Subscribe to new comments
+export const subscribeToComments = (
+  postId: string,
+  onNewComment: (comment: Comment) => void
+) => {
+  const channel = supabase
+    .channel(`comments-${postId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'community_comments',
+        filter: `post_id=eq.${postId}`,
+      },
+      (payload) => {
+        onNewComment(payload.new as Comment);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Report post
+export const reportPost = async (
+  postId: string,
+  reporterId: string,
+  reason: string
+) => {
+  const { error } = await supabase.rpc('report_post', {
+    p_post_id: postId,
+    p_reporter_id: reporterId,
+    p_reason: reason,
+  });
+
+  if (error) throw error;
+  return true;
+};

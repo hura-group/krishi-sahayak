@@ -1,0 +1,85 @@
+import { supabase } from '../lib/supabase';
+
+// Get all schemes
+export const getAllSchemes = async (category?: string) => {
+  let query = supabase
+    .from('govt_schemes')
+    .select('*')
+    .order('benefit_amount', { ascending: false, nullsFirst: false });
+
+  if (category && category !== 'all') {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get schemes for specific user
+export const getSchemesForUser = async (userId: string) => {
+  const { data, error } = await supabase
+    .rpc('get_schemes_for_user', { p_user_id: userId });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Check eligibility
+export const checkEligibility = (
+  scheme: any,
+  userProfile: any
+): 'Eligible' | 'May Be Eligible' | 'Not Eligible' => {
+  const eligibility = scheme.eligibility_json;
+  if (!eligibility) return 'May Be Eligible';
+
+  // Check land size
+  if (eligibility.land_size_max && userProfile.land_size) {
+    if (userProfile.land_size > eligibility.land_size_max) {
+      return 'Not Eligible';
+    }
+  }
+
+  // Check state
+  if (eligibility.state && userProfile.state) {
+    if (eligibility.state !== userProfile.state) {
+      return 'Not Eligible';
+    }
+  }
+
+  // Check age
+  if (eligibility.age_min && userProfile.age) {
+    if (userProfile.age < eligibility.age_min) {
+      return 'Not Eligible';
+    }
+  }
+
+  if (eligibility.age_max && userProfile.age) {
+    if (userProfile.age > eligibility.age_max) {
+      return 'Not Eligible';
+    }
+  }
+
+  return 'Eligible';
+};
+
+// Search schemes
+export const searchSchemes = async (query: string) => {
+  const { data, error } = await supabase
+    .from('govt_schemes')
+    .select('*')
+    .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+    .order('benefit_amount', { ascending: false, nullsFirst: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get schemes by category
+export const getSchemeCategories = () => [
+  'all',
+  'Subsidy',
+  'Insurance',
+  'Loan',
+  'Training',
+  'Equipment',
+];

@@ -1,0 +1,300 @@
+import { supabase } from '../lib/supabase';
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  type: 'text' | 'image';
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  participant_ids: string[];
+  last_message: string;
+  last_message_at: string;
+  created_at: string;
+}
+
+// Get or create conversation
+export const getOrCreateConversation = async (
+  user1Id: string,
+  user2Id: string
+): Promise<string> => {
+  const { data, error } = await supabase.rpc(
+    'get_or_create_conversation',
+    { p_user1_id: user1Id, p_user2_id: user2Id }
+  );
+  if (error) throw error;
+  return data;
+};
+
+// Get all conversations for user
+export const getConversations = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*')
+    .contains('participant_ids', [userId])
+    .order('last_message_at', { ascending: false, nullsFirst: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get messages for conversation
+export const getMessages = async (
+  conversationId: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<{ messages: Message[]; nextCursor: string | null }> => {
+  let query = supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) {
+    query = query.lt('created_at', cursor);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const messages = data ?? [];
+  const hasMore = messages.length > limit;
+  if (hasMore) messages.pop();
+
+  const nextCursor = hasMore && messages.length > 0
+    ? messages[messages.length - 1].created_at
+    : null;
+
+  return { messages: messages.reverse(), nextCursor };
+};
+
+// Send message
+export const sendMessage = async (
+  conversationId: string,
+  senderId: string,
+  content: string,
+  type: 'text' | 'image' = 'text'
+) => {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      content,
+      type,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Mark messages as read
+export const markMessagesRead = async (
+  conversationId: string,
+  userId: string
+) => {
+  await supabase.rpc('mark_messages_read', {
+    p_conversation_id: conversationId,
+    p_user_id: userId,
+  });
+};
+
+// Get unread message count
+export const getUnreadCount = async (
+  conversationId: string,
+  userId: string
+): Promise<number> => {
+  const { count } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('conversation_id', conversationId)
+    .eq('is_read', false)
+    .neq('sender_id', userId);
+
+  return count ?? 0;
+};
+
+// Subscribe to new messages
+export const subscribeToMessages = (
+  conversationId: string,
+  onNewMessage: (message: Message) => void
+) => {
+  const channel = supabase
+    .channel(`messages-${conversationId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        onNewMessage(payload.new as Message);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Subscribe to typing indicator via Presence
+export const subscribeToTyping = (
+  conversationId: string,
+  userId: string,
+  onTyping: (typingUserId: string, isTyping: boolean) => void
+) => {
+  const channel = supabase.channel(`typing-${conversationId}`);
+
+  channel
+    .on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      Object.keys(state).forEach((key) => {
+        const presence = state[key][0] as any;
+        if (presence.user_id !== userId) {
+          onTyping(presence.user_id, presence.is_typing);
+        }
+      });
+    })
+    .subscribe();
+
+  return channel;
+};
+
+// Broadcast typing status
+export const broadcastTyping = async (
+  channel: any,
+  userId: string,
+  isTyping: boolean
+) => {
+  await channel.track({ user_id: userId, is_typing: isTyping });
+};
+// Load last 50 messages on chat open
+export const getInitialMessages = async (
+  conversationId: string
+): Promise<Message[]> => {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+  return (data ?? []).reverse();
+};
+
+// Load older messages (infinite scroll upward)
+export const getOlderMessages = async (
+  conversationId: string,
+  beforeCursor: string,
+  limit: number = 20
+): Promise<{ messages: Message[]; hasMore: boolean }> => {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .lt('created_at', beforeCursor)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1);
+
+  if (error) throw error;
+
+  const messages = data ?? [];
+  const hasMore = messages.length > limit;
+  if (hasMore) messages.pop();
+
+  return { messages: messages.reverse(), hasMore };
+};
+
+// Upload image in chat
+export const uploadChatImage = async (
+  conversationId: string,
+  imageUri: string
+): Promise<string | null> => {
+  try {
+    const timestamp = Date.now();
+    const filePath = `messages/${conversationId}/${timestamp}.jpg`;
+    const blob = await fetch(imageUri).then((r) => r.blob());
+
+    const { error } = await supabase.storage
+      .from('messages')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (error) return null;
+
+    const { data } = supabase.storage
+      .from('messages')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+};
+
+// Search messages in conversation (stub)
+export const searchMessages = async (
+  conversationId: string,
+  query: string
+): Promise<Message[]> => {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .ilike('content', `%${query}%`)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get total unread count across all conversations
+export const getTotalUnreadCount = async (
+  userId: string
+): Promise<number> => {
+  const { data: conversations } = await supabase
+    .from('conversations')
+    .select('id')
+    .contains('participant_ids', [userId]);
+
+  if (!conversations || conversations.length === 0) return 0;
+
+  const convIds = conversations.map((c: any) => c.id);
+
+  const { count } = await supabase
+    .from('messages')
+    .select('*', { count: 'exact', head: true })
+    .in('conversation_id', convIds)
+    .eq('is_read', false)
+    .neq('sender_id', userId);
+
+  return count ?? 0;
+};
+
+// Search conversations by participant name
+export const searchConversations = async (
+  userId: string,
+  query: string
+) => {
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*')
+    .contains('participant_ids', [userId])
+    .order('last_message_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};

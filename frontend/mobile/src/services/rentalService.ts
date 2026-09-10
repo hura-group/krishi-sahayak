@@ -1,0 +1,171 @@
+import { supabase } from '../lib/supabase';
+
+export interface RentalRequest {
+  id: string;
+  equipment_listing_id: string;
+  requester_id: string;
+  owner_id: string;
+  start_date: string;
+  end_date: string;
+  message: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+}
+
+// Create rental request with double-booking check
+export const createRentalRequest = async (
+  listingId: string,
+  requesterId: string,
+  ownerId: string,
+  startDate: string,
+  endDate: string,
+  message?: string
+): Promise<string> => {
+  const { data, error } = await supabase.rpc('create_rental_request', {
+    p_listing_id: listingId,
+    p_requester_id: requesterId,
+    p_owner_id: ownerId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+    p_message: message ?? null,
+  });
+
+  if (error) throw error;
+  return data;
+};
+
+// Get requests for owner
+export const getOwnerRequests = async (ownerId: string) => {
+  const { data, error } = await supabase
+    .from('rental_requests')
+    .select(`
+      *,
+      marketplace_listings(title, images),
+      users!requester_id(full_name, phone)
+    `)
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get requests by requester
+export const getMyRentalRequests = async (requesterId: string) => {
+  const { data, error } = await supabase
+    .from('rental_requests')
+    .select(`
+      *,
+      marketplace_listings(title, images),
+      users!owner_id(full_name, phone)
+    `)
+    .eq('requester_id', requesterId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Accept rental request
+export const acceptRentalRequest = async (requestId: string) => {
+  const { error } = await supabase
+    .from('rental_requests')
+    .update({
+      status: 'accepted',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', requestId);
+
+  if (error) throw error;
+
+  // Notify requester
+  const { data: request } = await supabase
+    .from('rental_requests')
+    .select('requester_id')
+    .eq('id', requestId)
+    .single();
+
+  if (request) {
+    await supabase.from('notifications').insert({
+      user_id: request.requester_id,
+      title: '? Rental Request Accepted',
+      body: 'Your equipment rental request has been accepted!',
+      type: 'rental_accepted',
+      is_read: false,
+    });
+  }
+
+  return true;
+};
+
+// Reject rental request
+export const rejectRentalRequest = async (requestId: string) => {
+  const { error } = await supabase
+    .from('rental_requests')
+    .update({
+      status: 'rejected',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', requestId);
+
+  if (error) throw error;
+
+  // Notify requester
+  const { data: request } = await supabase
+    .from('rental_requests')
+    .select('requester_id')
+    .eq('id', requestId)
+    .single();
+
+  if (request) {
+    await supabase.from('notifications').insert({
+      user_id: request.requester_id,
+      title: '? Rental Request Rejected',
+      body: 'Your equipment rental request was not accepted.',
+      type: 'rental_rejected',
+      is_read: false,
+    });
+  }
+
+  return true;
+};
+
+// Subscribe to rental request status changes
+export const subscribeToRentalStatus = (
+  requestId: string,
+  onStatusChange: (status: string) => void
+) => {
+  const channel = supabase
+    .channel(`rental-${requestId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'rental_requests',
+        filter: `id=eq.${requestId}`,
+      },
+      (payload) => {
+        onStatusChange(payload.new.status);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Check date availability
+export const checkAvailability = async (
+  listingId: string,
+  startDate: string,
+  endDate: string
+): Promise<boolean> => {
+  const { data, error } = await supabase.rpc('check_date_overlap', {
+    p_listing_id: listingId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  });
+
+  if (error) throw error;
+  return !data; // true means available
+};

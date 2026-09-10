@@ -1,0 +1,147 @@
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as TaskManager from 'expo-task-manager';
+import * as Notifications from 'expo-notifications';
+import { supabase } from '../lib/supabase';
+
+const BACKGROUND_FETCH_TASK = 'krishi-background-fetch';
+
+// Define background task
+TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
+  try {
+    console.log('Background task running...');
+
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return BackgroundFetch.BackgroundFetchResult.NoData;
+    }
+
+    const userId = session.user.id;
+    let hasNewData = false;
+
+    // 1. Check for new messages
+    const { count: unreadMessages } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .neq('sender_id', userId);
+
+    // 2. Check for unread notifications
+    const { count: unreadNotifications } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    // 3. Update badge count
+    const totalBadge = (unreadMessages ?? 0) +
+      (unreadNotifications ?? 0);
+
+    await Notifications.setBadgeCountAsync(totalBadge);
+
+    if (totalBadge > 0) hasNewData = true;
+
+    // 4. Check for price alerts
+    const { data: user } = await supabase
+      .from('users')
+      .select('notification_prefs')
+      .eq('id', userId)
+      .single();
+
+    const prefs = user?.notification_prefs as any;
+    if (prefs?.price_alerts) {
+      // Check latest prices
+      const { data: prices } = await supabase
+        .from('market_prices')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(5);
+
+      if (prices && prices.length > 0) hasNewData = true;
+    }
+
+    return hasNewData
+      ? BackgroundFetch.BackgroundFetchResult.NewData
+      : BackgroundFetch.BackgroundFetchResult.NoData;
+  } catch (err) {
+    console.error('Background task error:', err);
+    return BackgroundFetch.BackgroundFetchResult.Failed;
+  }
+});
+
+// Register background fetch
+export const registerBackgroundFetch = async () => {
+  try {
+    const status = await BackgroundFetch.getStatusAsync();
+
+    if (status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
+        status === BackgroundFetch.BackgroundFetchStatus.Denied) {
+      console.log('Background fetch is disabled');
+      return false;
+    }
+
+    await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+      minimumInterval: 15 * 60, // 15 minutes
+      stopOnTerminate: false,
+      startOnBoot: true,
+    });
+
+    console.log('Background fetch registered!');
+    return true;
+  } catch (err) {
+    console.error('Failed to register background fetch:', err);
+    return false;
+  }
+};
+
+// Unregister background fetch
+export const unregisterBackgroundFetch = async () => {
+  try {
+    await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Check if background fetch is registered
+export const isBackgroundFetchRegistered = async (): Promise<boolean> => {
+  return TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
+};
+
+// Update app badge count
+export const updateBadgeCount = async (userId: string) => {
+  try {
+    const { count: unreadMessages } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_read', false)
+      .neq('sender_id', userId);
+
+    const { count: unreadNotifications } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_read', false);
+
+    const total = (unreadMessages ?? 0) + (unreadNotifications ?? 0);
+    await Notifications.setBadgeCountAsync(total);
+    return total;
+  } catch {
+    return 0;
+  }
+};
+
+// Create feedback table and service
+export const submitFeedback = async (
+  userId: string,
+  rating: number,
+  text: string
+) => {
+  const { error } = await supabase
+    .from('feedback')
+    .insert({ user_id: userId, rating, text });
+
+  if (error) throw error;
+  return true;
+};

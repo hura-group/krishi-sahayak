@@ -1,0 +1,167 @@
+import { supabase } from '../lib/supabase';
+
+export interface Listing {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  price_unit: string;
+  images: string[];
+  state: string;
+  district: string;
+  status: string;
+  views_count: number;
+  created_at: string;
+}
+
+export interface ListingFilters {
+  category?: string;
+  state?: string;
+  search?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+// Get marketplace listings with filters
+export const getListings = async (
+  filters: ListingFilters = {}
+): Promise<{ listings: Listing[]; nextCursor: string | null }> => {
+  const { data, error } = await supabase.rpc('get_marketplace_listings', {
+    p_category: filters.category ?? null,
+    p_state: filters.state ?? null,
+    p_search: filters.search ?? null,
+    p_cursor: filters.cursor ?? null,
+    p_limit: (filters.limit ?? 20) + 1,
+  });
+
+  if (error) throw error;
+
+  const listings = data ?? [];
+  const hasMore = listings.length > (filters.limit ?? 20);
+  if (hasMore) listings.pop();
+
+  const nextCursor = hasMore && listings.length > 0
+    ? listings[listings.length - 1].created_at
+    : null;
+
+  return { listings, nextCursor };
+};
+
+// Create new listing
+export const createListing = async (listing: {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  price_unit: string;
+  images: string[];
+  state: string;
+  district: string;
+  user_id: string;
+}) => {
+  const { data, error } = await supabase
+    .from('marketplace_listings')
+    .insert(listing)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Update listing
+export const updateListing = async (
+  listingId: string,
+  updates: Partial<Listing>
+) => {
+  const { data, error } = await supabase
+    .from('marketplace_listings')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', listingId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Delete listing
+export const deleteListing = async (listingId: string) => {
+  const { error } = await supabase
+    .from('marketplace_listings')
+    .delete()
+    .eq('id', listingId);
+
+  if (error) throw error;
+  return true;
+};
+
+// Get user's own listings
+export const getMyListings = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('marketplace_listings')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Increment view count
+export const incrementViews = async (listingId: string) => {
+  await supabase.rpc('increment_listing_views', {
+    p_listing_id: listingId,
+  });
+};
+
+// Upload listing images
+export const uploadListingImage = async (
+  userId: string,
+  imageBase64: string,
+  index: number
+): Promise<string | null> => {
+  try {
+    const filePath = `listings/${userId}/${Date.now()}_${index}.jpg`;
+    const blob = await fetch(
+      `data:image/jpeg;base64,${imageBase64}`
+    ).then((r) => r.blob());
+
+    const { error } = await supabase.storage
+      .from('marketplace')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (error) return null;
+
+    const { data } = supabase.storage
+      .from('marketplace')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+};
+
+// Get listing categories
+export const getCategories = () => [
+  'Seeds',
+  'Produce',
+  'Equipment',
+  'Inputs',
+  'Livestock',
+];
+
+// Get price unit options
+export const getPriceUnits = () => [
+  { label: 'Fixed Price', value: 'fixed' },
+  { label: 'Per Kg', value: 'per_kg' },
+  { label: 'Per Day', value: 'per_day' },
+  { label: 'Per Acre', value: 'per_acre' },
+  { label: 'Negotiable', value: 'negotiable' },
+];

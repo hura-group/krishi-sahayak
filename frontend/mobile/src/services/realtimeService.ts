@@ -1,0 +1,74 @@
+import { supabase } from '../lib/supabase';
+import { AppState, AppStateStatus } from 'react-native';
+
+// Subscribe to market prices real-time updates
+export const subscribeToMarketPrices = (
+  onUpdate: (price: any) => void
+) => {
+  const channel = supabase
+    .channel('market-prices-channel')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'market_prices',
+      },
+      (payload) => {
+        onUpdate(payload.new);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Subscribe to notifications real-time
+export const subscribeToNotifications = (
+  userId: string,
+  onNewNotification: (notification: any) => void
+) => {
+  const channel = supabase
+    .channel('notifications-channel')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        onNewNotification(payload.new);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Handle re-connection when app comes to foreground
+export const handleAppStateChange = (
+  onForeground: () => void
+) => {
+  const subscription = AppState.addEventListener(
+    'change',
+    (state: AppStateStatus) => {
+      if (state === 'active') {
+        // Reconnect realtime when app comes to foreground
+        supabase.realtime.connect();
+        onForeground();
+      } else if (state === 'background') {
+        // Disconnect to save battery
+        supabase.realtime.disconnect();
+      }
+    }
+  );
+
+  return subscription;
+};
+
+// Unsubscribe from all channels
+export const unsubscribeAll = async () => {
+  await supabase.removeAllChannels();
+};

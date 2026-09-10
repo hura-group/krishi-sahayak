@@ -1,0 +1,161 @@
+import { AppState, AppStateStatus } from 'react-native';
+import { supabase } from '../lib/supabase';
+import { detectCropDisease, savePestDetection, uploadPestImage } from './pestDetectionService';
+
+// In-memory queue for offline detections
+let offlineQueue: OfflineDetection[] = [];
+
+export interface OfflineDetection {
+  id: string;
+  imageBase64: string;
+  cropName: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: string;
+}
+
+// Check internet connectivity
+export const isOnline = async (): Promise<boolean> => {
+  try {
+    const res = await fetch('https://www.google.com', {
+      method: 'HEAD',
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+};
+
+// Save detection to offline queue
+export const saveToOfflineQueue = async (
+  userId: string,
+  imageBase64: string,
+  cropName: string
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from('pest_detection_queue')
+    .insert({
+      user_id: userId,
+      image_base64: imageBase64,
+      crop_name: cropName,
+      status: 'pending',
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Also add to in-memory queue
+  offlineQueue.push({
+    id: data.id,
+    imageBase64,
+    cropName,
+    status: 'pending',
+    createdAt: data.created_at,
+  });
+
+  return data.id;
+};
+
+// Get pending queue items
+export const getPendingQueue = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('pest_detection_queue')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Process queued detection
+export const processQueuedDetection = async (
+  userId: string,
+  queueItem: any
+) => {
+  try {
+    // Update status to processing
+    await supabase
+      .from('pest_detection_queue')
+      .update({ status: 'processing' })
+      .eq('id', queueItem.id);
+
+    // Upload image
+    const imageUrl = await uploadPestImage(userId, queueItem.image_base64);
+
+    // Detect disease
+    const result = await detectCropDisease(queueItem.image_base64);
+
+    // Save detection
+    await savePestDetection(
+      userId,
+      imageUrl ?? '',
+      result
+    );
+
+    // Mark as completed
+    await supabase
+      .from('pest_detection_queue')
+      .update({
+        status: 'completed',
+        processed_at: new Date().toISOString(),
+      })
+      .eq('id', queueItem.id);
+
+    // Send notification
+    await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        title: '?? Pest Detection Complete',
+        body: `Your offline scan result: ${result.diseaseName}`,
+        type: 'pest_detection',
+        is_read: false,
+      });
+
+    return result;
+  } catch {
+    // Mark as failed
+    await supabase
+      .from('pest_detection_queue')
+      .update({ status: 'failed' })
+      .eq('id', queueItem.id);
+    throw new Error('Failed to process queued detection');
+  }
+};
+
+// Auto-process queue when connection restored
+export const startQueueProcessor = (userId: string) => {
+  const subscription = AppState.addEventListener(
+    'change',
+    async (state: AppStateStatus) => {
+      if (state === 'active') {
+        const online = await isOnline();
+        if (online) {
+          const queue = await getPendingQueue(userId);
+          for (const item of queue) {
+            try {
+              await processQueuedDetection(userId, item);
+            } catch {
+              // Continue with next item
+            }
+          }
+        }
+      }
+    }
+  );
+
+  return subscription;
+};
+
+// Get queue count
+export const getQueueCount = async (userId: string): Promise<number> => {
+  const { count } = await supabase
+    .from('pest_detection_queue')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+
+  return count ?? 0;
+};

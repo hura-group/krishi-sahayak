@@ -1,0 +1,63 @@
+import * as SecureStore from 'expo-secure-store';
+import { createClient } from '@supabase/supabase-js';
+import { Platform, AppState } from 'react-native';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+// Storage adapters for different platforms
+const ExpoSecureStoreAdapter = {
+  getItem: (key: string) => SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+  removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+};
+
+const WebStorageAdapter = {
+  getItem: async (key: string) => {
+    try {
+      return Promise.resolve(localStorage.getItem(key));
+    } catch {
+      return null;
+    }
+  },
+  setItem: async (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+      return Promise.resolve();
+    } catch {
+      return Promise.resolve();
+    }
+  },
+  removeItem: async (key: string) => {
+    try {
+      localStorage.removeItem(key);
+      return Promise.resolve();
+    } catch {
+      return Promise.resolve();
+    }
+  },
+};
+
+const storage = Platform.OS === 'web' ? WebStorageAdapter : ExpoSecureStoreAdapter;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+
+// Auto-refresh token when app comes to foreground (guarded)
+if (typeof AppState !== 'undefined' && AppState.addEventListener) {
+  AppState.addEventListener('change', (state) => {
+    const auth: any = (supabase as any).auth ?? null;
+    if (!auth) return;
+    if (state === 'active') {
+      if (typeof auth.startAutoRefresh === 'function') auth.startAutoRefresh();
+    } else {
+      if (typeof auth.stopAutoRefresh === 'function') auth.stopAutoRefresh();
+    }
+  });
+}

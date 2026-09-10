@@ -1,0 +1,67 @@
+import { supabase } from '../lib/supabase';
+
+// Insert farm record
+export const insertFarm = async (farm: {
+  user_id: string;
+  farm_name: string;
+  area_acres: number;
+  soil_type: string;
+  location_lat: number;
+  location_lng: number;
+}) => {
+  const { data, error } = await supabase
+    .from('farms')
+    .insert(farm)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Get farms by user ID
+export const getFarmsByUserId = async (userId: string) => {
+  const { data, error } = await supabase
+    .rpc('get_farm_by_user_id', { p_user_id: userId });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get user with all farms (single join query)
+export const getUserWithFarms = async (userId: string) => {
+  const { data, error } = await supabase
+    .rpc('get_user_with_farms', { p_user_id: userId });
+  if (error) throw error;
+  return data;
+};
+
+// Update farm
+export const updateFarm = async (
+  farmId: string,
+  updates: Partial<{
+    farm_name: string;
+    area_acres: number;
+    soil_type: string;
+    location_lat: number;
+    location_lng: number;
+  }>
+) => {
+  const { data, error } = await supabase
+    .from('farms')
+    .update(updates)
+    .eq('id', farmId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Delete farm
+export const deleteFarm = async (farmId: string) => {
+  const { error } = await supabase
+    .from('farms')
+    .delete()
+    .eq('id', farmId);
+  if (error) throw error;
+  return true;
+};
+

@@ -1,0 +1,174 @@
+import { supabase } from '../lib/supabase';
+
+export interface ExpenseRecord {
+  id: string;
+  user_id: string;
+  farm_id: string | null;
+  category: string;
+  amount: number;
+  description: string;
+  recorded_date: string;
+  payment_method: string;
+  receipt_url: string | null;
+  is_recurring: boolean;
+  created_at: string;
+}
+
+// Get expenses by month
+export const getExpensesByMonth = async (
+  userId: string,
+  month: number,
+  year: number
+): Promise<ExpenseRecord[]> => {
+  const { data, error } = await supabase
+    .from('expense_records')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('recorded_date', `${year}-${String(month).padStart(2, '0')}-01`)
+    .lt('recorded_date', `${year}-${String(month + 1).padStart(2, '0')}-01`)
+    .order('recorded_date', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get expense summary by category
+export const getExpenseSummary = async (
+  userId: string,
+  month: number,
+  year: number
+) => {
+  const { data, error } = await supabase.rpc('get_expense_summary', {
+    p_user_id: userId,
+    p_month: month,
+    p_year: year,
+  });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get 6-month trend
+export const getExpenseTrend = async (userId: string) => {
+  const { data, error } = await supabase.rpc('get_expense_trend', {
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Add expense
+export const addExpense = async (expense: {
+  user_id: string;
+  farm_id?: string;
+  category: string;
+  amount: number;
+  description?: string;
+  recorded_date: string;
+  payment_method?: string;
+  receipt_url?: string;
+  is_recurring?: boolean;
+}) => {
+  const { data, error } = await supabase
+    .from('expense_records')
+    .insert(expense)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Update expense
+export const updateExpense = async (
+  expenseId: string,
+  updates: Partial<ExpenseRecord>
+) => {
+  const { data, error } = await supabase
+    .from('expense_records')
+    .update(updates)
+    .eq('id', expenseId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Delete expense
+export const deleteExpense = async (expenseId: string) => {
+  const { error } = await supabase
+    .from('expense_records')
+    .delete()
+    .eq('id', expenseId);
+
+  if (error) throw error;
+  return true;
+};
+
+// Upload receipt image
+export const uploadReceipt = async (
+  userId: string,
+  imageUri: string
+): Promise<string | null> => {
+  try {
+    const filePath = `receipts/${userId}/${Date.now()}.jpg`;
+    const blob = await fetch(imageUri).then((r) => r.blob());
+
+    const { error } = await supabase.storage
+      .from('receipts')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: false,
+      });
+
+    if (error) return null;
+
+    const { data } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+};
+
+// Get total spend this month
+export const getTotalSpendThisMonth = async (
+  userId: string
+): Promise<number> => {
+  const now = new Date();
+  const summary = await getExpenseSummary(
+    userId,
+    now.getMonth() + 1,
+    now.getFullYear()
+  );
+
+  return summary.reduce(
+    (total: number, item: any) => total + Number(item.total_amount),
+    0
+  );
+};
+
+// Get expense categories
+export const getExpenseCategories = () => [
+  { label: 'Seeds', icon: '??' },
+  { label: 'Fertiliser', icon: '??' },
+  { label: 'Pesticides', icon: '??' },
+  { label: 'Labour', icon: '?????' },
+  { label: 'Irrigation', icon: '??' },
+  { label: 'Equipment', icon: '??' },
+  { label: 'Fuel', icon: '?' },
+  { label: 'Other', icon: '??' },
+];
+
+// Get payment methods
+export const getPaymentMethods = () => [
+  'Cash',
+  'UPI',
+  'Bank Transfer',
+  'Credit',
+  'Other',
+];

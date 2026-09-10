@@ -1,0 +1,98 @@
+import { supabase } from '../lib/supabase';
+
+// Get latest news articles
+export const getNewsArticles = async (
+  category?: string,
+  limit: number = 20
+) => {
+  let query = supabase
+    .from('news_articles')
+    .select('*')
+    .order('published_at', { ascending: false })
+    .limit(limit);
+
+  if (category && category !== 'all') {
+    query = query.eq('category', category);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Subscribe to new articles in real-time
+export const subscribeToNewArticles = (
+  onNewArticles: (count: number) => void
+) => {
+  let newArticleCount = 0;
+
+  const channel = supabase
+    .channel('news-articles-channel')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'news_articles',
+      },
+      () => {
+        newArticleCount += 1;
+        // Only show banner if > 3 new articles
+        if (newArticleCount > 3) {
+          onNewArticles(newArticleCount);
+        }
+      }
+    )
+    .subscribe();
+
+  return {
+    channel,
+    resetCount: () => { newArticleCount = 0; },
+  };
+};
+
+// Get time ago label
+export const getTimeAgo = (publishedAt: string): string => {
+  const now = Date.now();
+  const published = new Date(publishedAt).getTime();
+  const diffMinutes = Math.floor((now - published) / 1000 / 60);
+
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const hours = Math.floor(diffMinutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+// Calculate reading time
+export const getReadingTime = (text: string): number => {
+  const words = text.split(' ').length;
+  return Math.ceil(words / 200); // 200 wpm
+};
+
+// Track article viewed event
+export const trackArticleViewed = (
+  articleId: string,
+  title: string,
+  category: string
+) => {
+  // PostHog tracking
+  try {
+    console.log('Track: news_article_viewed', { articleId, title, category });
+  } catch {
+    // ignore
+  }
+};
+
+// Save bookmark locally
+export const saveBookmark = async (articleId: string) => {
+  const { error } = await supabase
+    .from('news_articles')
+    .select('id')
+    .eq('id', articleId)
+    .single();
+
+  if (error) throw error;
+  return true;
+};

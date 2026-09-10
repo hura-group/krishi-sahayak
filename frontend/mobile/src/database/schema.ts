@@ -1,0 +1,59 @@
+import { appSchema, tableSchema } from '@nozbe/watermelondb';
+
+export const schema = appSchema({
+  version: 1,
+  tables: [
+    // Local Weather Cache
+    tableSchema({
+      name: 'local_weather',
+      columns: [
+        { name: 'lat', type: 'number' },
+        { name: 'lng', type: 'number' },
+        { name: 'data', type: 'string' },
+        { name: 'fetched_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    // Local Market Prices
+    tableSchema({
+      name: 'local_prices',
+      columns: [
+        { name: 'crop_name', type: 'string' },
+        { name: 'market_name', type: 'string' },
+        { name: 'state', type: 'string' },
+        { name: 'price_per_kg', type: 'number' },
+        { name: 'recorded_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    // Local News Cache
+    tableSchema({
+      name: 'local_news',
+      columns: [
+        { name: 'remote_id', type: 'string' },
+        { name: 'title', type: 'string' },
+        { name: 'summary', type: 'string', isOptional: true },
+        { name: 'source', type: 'string', isOptional: true },
+        { name: 'url', type: 'string' },
+        { name: 'category', type: 'string', isOptional: true },
+        { name: 'published_at', type: 'number' },
+        { name: 'is_bookmarked', type: 'boolean' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+      ],
+    }),
+
+    // Local Draft (pest detection queue)
+    tableSchema({
+      name: 'local_drafts',
+      columns: [
+        { name: 'type', type: 'string' },
+        { name: 'data', type: 'string' },
+        { name: 'status', type: 'string' },
+        { name: 'created_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+      ],
+    }),
+  ],
+});

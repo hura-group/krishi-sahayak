@@ -1,0 +1,137 @@
+import * as Sentry from '@sentry/react-native';
+
+// Error types
+export type WeatherErrorType =
+  | 'api_down'
+  | 'network_error'
+  | 'rate_limit'
+  | 'city_not_found'
+  | 'unknown';
+
+export interface WeatherError {
+  type: WeatherErrorType;
+  message: string;
+  shouldRetry: boolean;
+  userMessage: string;
+}
+
+// Error tracker for rate monitoring
+const errorLog: number[] = [];
+
+// Parse weather error
+export const parseWeatherError = (error: any): WeatherError => {
+  const status = error?.status ?? error?.code;
+  const message = error?.message ?? 'Unknown error';
+
+  if (status === 404) {
+    return {
+      type: 'city_not_found',
+      message,
+      shouldRetry: false,
+      userMessage: 'City not found. Please try another location.',
+    };
+  }
+
+  if (status === 429) {
+    return {
+      type: 'rate_limit',
+      message,
+      shouldRetry: true,
+      userMessage: 'Too many requests. Showing cached data.',
+    };
+  }
+
+  if (status >= 500) {
+    return {
+      type: 'api_down',
+      message,
+      shouldRetry: true,
+      userMessage: 'Weather service is down. Using cached data.',
+    };
+  }
+
+  if (message.includes('network') || message.includes('fetch')) {
+    return {
+      type: 'network_error',
+      message,
+      shouldRetry: true,
+      userMessage: 'No internet connection. Showing cached data.',
+    };
+  }
+
+  return {
+    type: 'unknown',
+    message,
+    shouldRetry: true,
+    userMessage: 'Something went wrong. Using cached data.',
+  };
+};
+
+// Log error to Sentry
+export const logWeatherError = (
+  error: any,
+  context: { userId?: string; lat?: number; lng?: number }
+) => {
+  // Track error timestamp
+  errorLog.push(Date.now());
+
+  // Remove errors older than 5 minutes
+  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+  const recentErrors = errorLog.filter((t) => t > fiveMinutesAgo);
+
+  // Log to Sentry
+  Sentry.captureException(error, {
+    tags: {
+      feature: 'weather',
+      error_type: parseWeatherError(error).type,
+    },
+    extra: {
+      userId: context.userId,
+      lat: context.lat,
+      lng: context.lng,
+      recentErrorCount: recentErrors.length,
+    },
+  });
+
+  // Alert if error rate exceeds 5% in 5 minutes
+  if (recentErrors.length >= 5) {
+    Sentry.captureMessage('Weather API error rate exceeded threshold', {
+      level: 'warning',
+      tags: { feature: 'weather', alert: 'high_error_rate' },
+      extra: {
+        errorCount: recentErrors.length,
+        timeWindowMinutes: 5,
+      },
+    });
+  }
+};
+
+// Auto retry manager
+export class WeatherRetryManager {
+  private retryInterval: ReturnType<typeof setInterval> | null = null;
+  private onRetry: () => Promise<void>;
+
+  constructor(onRetry: () => Promise<void>) {
+    this.onRetry = onRetry;
+  }
+
+  // Start auto retry every 2 minutes
+  startAutoRetry() {
+    this.retryInterval = setInterval(async () => {
+      await this.onRetry();
+    }, 2 * 60 * 1000);
+  }
+
+  // Manual retry
+  async retry() {
+    await this.onRetry();
+  }
+
+  // Stop auto retry
+  stop() {
+    if (this.retryInterval) {
+      clearInterval(this.retryInterval);
+      this.retryInterval = null;
+    }
+  }
+}

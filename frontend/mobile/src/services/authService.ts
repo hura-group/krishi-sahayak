@@ -1,0 +1,37 @@
+import { supabase } from '../lib/supabase';
+
+// Send OTP to phone
+export const signInWithOtp = async (phone: string) => {
+  const { data, error } = await supabase.auth.signInWithOtp({
+    phone,
+    options: {
+      channel: 'sms',
+    }
+  });
+  if (error) throw error;
+  return data;
+};
+
+// Verify OTP
+export const verifyOtp = async (phone: string, token: string) => {
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone,
+    token,
+    type: 'sms',
+  });
+  if (error) throw error;
+  return data;
+};
+
+// Sign out
+export const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+};
+
+// Get current user
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+

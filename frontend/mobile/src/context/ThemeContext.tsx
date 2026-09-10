@@ -1,0 +1,130 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Appearance, ColorSchemeName } from 'react-native';
+
+// Simple storage using a module-level variable
+// (MMKV will be used when native modules are available)
+const themeStorage = {
+  get: (key: string): string | undefined => {
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      return storage.getString(key);
+    } catch {
+      return undefined;
+    }
+  },
+  set: (key: string, value: string) => {
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      storage.set(key, value);
+    } catch {
+      // ignore
+    }
+  },
+  delete: (key: string) => {
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const storage = new MMKV();
+      storage.delete(key);
+    } catch {
+      // ignore
+    }
+  },
+};
+
+// Light & Dark color palettes
+export const lightTheme = {
+  background: '#FFFFFF',
+  surface: '#F5F5F5',
+  primary: '#2D7A3A',
+  secondary: '#FFA500',
+  text: '#1A1A1A',
+  textSecondary: '#666666',
+  border: '#E0E0E0',
+  card: '#FFFFFF',
+  success: '#2D7A3A',
+  warning: '#FFA500',
+  error: '#FF4444',
+  isDark: false,
+};
+
+export const darkTheme = {
+  background: '#1A1A1A',
+  surface: '#2C2C2C',
+  primary: '#4CAF50',
+  secondary: '#FFB74D',
+  text: '#FFFFFF',
+  textSecondary: '#AAAAAA',
+  border: '#3C3C3C',
+  card: '#2C2C2C',
+  success: '#4CAF50',
+  warning: '#FFB74D',
+  error: '#FF6B6B',
+  isDark: true,
+};
+
+export type Theme = typeof lightTheme;
+
+interface ThemeContextType {
+  theme: Theme;
+  isDark: boolean;
+  toggleTheme: () => void;
+  setSystemTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType>({} as ThemeContextType);
+
+export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+  const systemTheme = Appearance.getColorScheme();
+
+  const getInitialTheme = (): boolean => {
+    const savedTheme = themeStorage.get('theme');
+    if (savedTheme === 'dark') return true;
+    if (savedTheme === 'light') return false;
+    return systemTheme === 'dark';
+  };
+
+  const [isDark, setIsDark] = useState(getInitialTheme());
+
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(
+      ({ colorScheme }: { colorScheme: ColorSchemeName }) => {
+        if (!themeStorage.get('theme')) {
+          setIsDark(colorScheme === 'dark');
+        }
+      }
+    );
+    return () => subscription.remove();
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    themeStorage.set('theme', newTheme ? 'dark' : 'light');
+  };
+
+  const setSystemTheme = () => {
+    themeStorage.delete('theme');
+    setIsDark(systemTheme === 'dark');
+  };
+
+  return (
+    <ThemeContext.Provider value={{
+      theme: isDark ? darkTheme : lightTheme,
+      isDark,
+      toggleTheme,
+      setSystemTheme,
+    }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useTheme must be used within ThemeProvider');
+  }
+  return context;
+};

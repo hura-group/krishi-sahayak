@@ -1,0 +1,126 @@
+import { supabase } from '../lib/supabase';
+
+// Deep link routes
+export const DEEP_LINKS = {
+  MARKET: 'krishisahayak://market',
+  CHAT: 'krishisahayak://chat',
+  COMMUNITY: 'krishisahayak://community',
+  WEATHER: 'krishisahayak://weather',
+  PEST: 'krishisahayak://pest',
+  SCHEMES: 'krishisahayak://schemes',
+  PROFILE: 'krishisahayak://profile',
+  NOTIFICATIONS: 'krishisahayak://notifications',
+};
+
+// Get deep link for notification type
+export const getDeepLinkForNotification = (
+  type: string,
+  data?: Record<string, any>
+): string => {
+  switch (type) {
+    case 'PRICE_ALERT':
+      return `${DEEP_LINKS.MARKET}?crop=${data?.crop_name ?? ''}`;
+    case 'WEATHER_ALERT':
+      return DEEP_LINKS.WEATHER;
+    case 'NEW_MESSAGE':
+      return `${DEEP_LINKS.CHAT}/${data?.conversation_id ?? ''}`;
+    case 'COMMUNITY_REPLY':
+      return `${DEEP_LINKS.COMMUNITY}?post_id=${data?.post_id ?? ''}`;
+    case 'STREAK_REMINDER':
+      return DEEP_LINKS.PROFILE;
+    case 'WEEKLY_SUMMARY':
+      return DEEP_LINKS.PROFILE;
+    case 'BREAKING_NEWS':
+      return `${DEEP_LINKS.COMMUNITY}?article_id=${data?.article_id ?? ''}`;
+    case 'RENTAL_REQUEST':
+      return `${DEEP_LINKS.MARKET}?tab=rentals`;
+    case 'PEST_DETECTION':
+      return DEEP_LINKS.PEST;
+    default:
+      return DEEP_LINKS.NOTIFICATIONS;
+  }
+};
+
+// Parse deep link URL
+export const parseDeepLink = (url: string): {
+  screen: string;
+  params: Record<string, string>;
+} => {
+  try {
+    const withoutScheme = url.replace('krishisahayak://', '');
+    const [path, queryString] = withoutScheme.split('?');
+    const params: Record<string, string> = {};
+
+    if (queryString) {
+      queryString.split('&').forEach((param) => {
+        const [key, value] = param.split('=');
+        if (key && value) params[key] = decodeURIComponent(value);
+      });
+    }
+
+    return { screen: path, params };
+  } catch {
+    return { screen: 'home', params: {} };
+  }
+};
+
+// Store pending navigation (for killed app)
+let pendingNavigation: { screen: string; params: Record<string, string> } | null = null;
+
+export const storePendingNavigation = (
+  screen: string,
+  params: Record<string, string>
+) => {
+  pendingNavigation = { screen, params };
+};
+
+export const getPendingNavigation = () => {
+  const nav = pendingNavigation;
+  pendingNavigation = null;
+  return nav;
+};
+
+// Notification preferences service
+export const getNotificationPrefs = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('notification_prefs')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw error;
+  return data?.notification_prefs ?? {
+    price_alerts: true,
+    weather_alerts: true,
+    messages: true,
+    community: true,
+    streak_reminders: true,
+    quiet_hours_start: 22,
+    quiet_hours_end: 7,
+  };
+};
+
+export const updateNotificationPrefs = async (
+  userId: string,
+  prefs: Record<string, any>
+) => {
+  const { error } = await supabase.rpc('update_notification_prefs', {
+    p_user_id: userId,
+    p_prefs: prefs,
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Check if notification should be sent
+export const shouldSendNotification = async (
+  userId: string,
+  type: string
+): Promise<boolean> => {
+  const { data, error } = await supabase.rpc('should_send_notification', {
+    p_user_id: userId,
+    p_type: type,
+  });
+  if (error) return true;
+  return data ?? true;
+};

@@ -1,0 +1,99 @@
+import { synchronize } from '@nozbe/watermelondb/sync';
+import { database } from '../database';
+import { supabase } from '../lib/supabase';
+
+// Sync WatermelonDB with Supabase
+export const syncWithSupabase = async (userId: string) => {
+  try {
+    await synchronize({
+      database,
+
+      // Pull: fetch changes from Supabase
+      pullChanges: async ({ lastPulledAt }) => {
+        const since = lastPulledAt
+          ? new Date(lastPulledAt).toISOString()
+          : new Date(0).toISOString();
+
+        // Fetch market prices
+        const { data: prices } = await supabase
+          .from('market_prices')
+          .select('*')
+          .gte('recorded_at', since);
+
+        // Fetch news articles
+        const { data: news } = await supabase
+          .from('news_articles')
+          .select('*')
+          .gte('fetched_at', since)
+          .limit(50);
+
+        return {
+          changes: {
+            local_prices: {
+              created: (prices ?? []).map((p: any) => ({
+                id: p.id,
+                crop_name: p.crop_name,
+                market_name: p.market_name ?? '',
+                state: p.state ?? '',
+                price_per_kg: p.price_per_kg,
+                recorded_at: new Date(p.recorded_at).getTime(),
+              })),
+              updated: [],
+              deleted: [],
+            },
+            local_news: {
+              created: (news ?? []).map((n: any) => ({
+                id: n.id,
+                remote_id: n.id,
+                title: n.title,
+                summary: n.summary ?? '',
+                source: n.source ?? '',
+                url: n.url,
+                category: n.category ?? 'general',
+                published_at: new Date(n.published_at).getTime(),
+                is_bookmarked: false,
+              })),
+              updated: [],
+              deleted: [],
+            },
+            local_weather: { created: [], updated: [], deleted: [] },
+            local_drafts: { created: [], updated: [], deleted: [] },
+          },
+          timestamp: Date.now(),
+        };
+      },
+
+      // Push: send local changes to Supabase
+      pushChanges: async ({ changes }) => {
+        // Push local drafts (pest detection queue)
+        const drafts = (changes as any).local_drafts?.created ?? [];
+
+        for (const draft of drafts) {
+          const data = JSON.parse(draft.data as string);
+
+          if (draft.type === 'pest_detection') {
+            await supabase
+              .from('pest_detection_queue')
+              .insert({
+                user_id: userId,
+                image_base64: data.image_base64,
+                crop_name: data.crop_name,
+                status: 'pending',
+              });
+          }
+        }
+      },
+    });
+
+    console.log('Sync completed successfully!');
+    return true;
+  } catch (err) {
+    console.error('Sync error:', err);
+    return false;
+  }
+};
+
+// Pull on app open
+export const pullOnAppOpen = async (userId: string) => {
+  return syncWithSupabase(userId);
+};

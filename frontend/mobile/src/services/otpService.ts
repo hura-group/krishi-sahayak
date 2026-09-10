@@ -1,0 +1,87 @@
+import { supabase } from '../lib/supabase';
+
+// Send OTP
+export const sendOTP = async (phone: string) => {
+  const { error } = await supabase.auth.signInWithOtp({
+    phone,
+    options: { channel: 'sms' }
+  });
+  if (error) throw error;
+  return true;
+};
+
+// Verify OTP
+export const verifyOTP = async (phone: string, token: string) => {
+  const { data, error } = await supabase.auth.verifyOtp({
+    phone,
+    token,
+    type: 'sms',
+  });
+  if (error) throw error;
+  return data;
+};
+
+// Resend OTP timer (60 seconds)
+export class ResendTimer {
+  private seconds: number = 60;
+  private interval: any = null;
+  private onTick: (seconds: number) => void;
+  private onComplete: () => void;
+
+  constructor(
+    onTick: (seconds: number) => void,
+    onComplete: () => void
+  ) {
+    this.onTick = onTick;
+    this.onComplete = onComplete;
+  }
+
+  start() {
+    this.seconds = 60;
+    this.interval = setInterval(() => {
+      this.seconds -= 1;
+      this.onTick(this.seconds);
+      if (this.seconds <= 0) {
+        this.stop();
+        this.onComplete();
+      }
+    }, 1000);
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+}
+
+// OTP Error handler
+export const handleOTPError = (error: any) => {
+  const message = error?.message?.toLowerCase() ?? '';
+
+  if (message.includes('invalid') || message.includes('expired')) {
+    return {
+      type: 'invalid',
+      message: 'Invalid or expired OTP. Please try again.',
+      shouldShake: true,
+      shouldClear: true,
+    };
+  }
+
+  if (message.includes('rate') || message.includes('limit')) {
+    return {
+      type: 'rateLimit',
+      message: 'Too many attempts. Please wait before trying again.',
+      shouldShake: false,
+      shouldClear: false,
+    };
+  }
+
+  return {
+    type: 'unknown',
+    message: 'Something went wrong. Please try again.',
+    shouldShake: true,
+    shouldClear: true,
+  };
+};

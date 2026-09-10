@@ -1,0 +1,126 @@
+import * as Sentry from '@sentry/react-native';
+
+export interface PriceRecord {
+  crop_name: string;
+  market_name: string;
+  state: string;
+  price_per_kg: number;
+  min_price?: number;
+  max_price?: number;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  isSuspicious: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+// Validate price record
+export const validatePriceRecord = (
+  record: PriceRecord,
+  avg30day?: number
+): ValidationResult => {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  let isSuspicious = false;
+
+  // Price must be > 0
+  if (!record.price_per_kg || record.price_per_kg <= 0) {
+    errors.push('Price must be greater than 0');
+  }
+
+  // Price must be < 100000
+  if (record.price_per_kg >= 100000) {
+    errors.push('Price exceeds maximum limit of 100000');
+  }
+
+  // Min price check
+  if (record.min_price !== undefined && record.min_price < 0) {
+    errors.push('Min price cannot be negative');
+  }
+
+  // Max price check
+  if (record.max_price !== undefined && record.max_price < record.price_per_kg) {
+    warnings.push('Max price is less than modal price');
+  }
+
+  // Crop name required
+  if (!record.crop_name?.trim()) {
+    errors.push('Crop name is required');
+  }
+
+  // Market name required
+  if (!record.market_name?.trim()) {
+    errors.push('Market name is required');
+  }
+
+  // Check for outliers (price > 3x 30-day average)
+  if (avg30day && avg30day > 0) {
+    if (record.price_per_kg > avg30day * 3) {
+      isSuspicious = true;
+      warnings.push(
+        `Price ${record.price_per_kg} is more than 3x the 30-day average ${avg30day.toFixed(2)}`
+      );
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    isSuspicious,
+    errors,
+    warnings,
+  };
+};
+
+// Log suspicious data to Sentry
+export const logSuspiciousData = (
+  record: PriceRecord,
+  result: ValidationResult
+) => {
+  Sentry.captureMessage('Suspicious market price data detected', {
+    level: 'warning',
+    tags: {
+      feature: 'market_data',
+      crop: record.crop_name,
+      market: record.market_name,
+    },
+    extra: {
+      record,
+      warnings: result.warnings,
+      errors: result.errors,
+    },
+  });
+};
+
+// Filter and validate batch of records
+export const filterValidRecords = (
+  records: PriceRecord[],
+  avg30dayMap?: Record<string, number>
+): PriceRecord[] => {
+  const validRecords: PriceRecord[] = [];
+
+  for (const record of records) {
+    const avg30day = avg30dayMap?.[record.crop_name];
+    const result = validatePriceRecord(record, avg30day);
+
+    if (!result.isValid) {
+      // Log invalid records
+      Sentry.captureMessage('Invalid market price data', {
+        level: 'error',
+        extra: { record, errors: result.errors },
+      });
+      continue;
+    }
+
+    if (result.isSuspicious) {
+      // Log suspicious but skip from display
+      logSuspiciousData(record, result);
+      continue;
+    }
+
+    validRecords.push(record);
+  }
+
+  return validRecords;
+};

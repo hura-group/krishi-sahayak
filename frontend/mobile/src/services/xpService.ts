@@ -1,0 +1,192 @@
+import { supabase } from '../lib/supabase';
+
+// Award XP to user
+export const awardXP = async (
+  userId: string,
+  eventName: string
+): Promise<number> => {
+  const { data, error } = await supabase.rpc('award_xp', {
+    p_user_id: userId,
+    p_event_name: eventName,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Get leaderboard
+export const getLeaderboard = async (
+  state?: string,
+  limit: number = 50
+) => {
+  const { data, error } = await supabase.rpc('get_leaderboard', {
+    p_state: state ?? null,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get user XP and rank
+export const getUserXPInfo = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('xp_points, streak_days, last_active_date')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Track daily login
+export const trackDailyLogin = async (userId: string) => {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Check if already logged in today
+  const { data: user } = await supabase
+    .from('users')
+    .select('last_active_date')
+    .eq('id', userId)
+    .single();
+
+  if (user?.last_active_date === today) return 0;
+
+  // Update last active date
+  await supabase
+    .from('users')
+    .update({ last_active_date: today })
+    .eq('id', userId);
+
+  // Award daily login XP
+  return awardXP(userId, 'daily_login');
+};
+
+// Get XP event history
+export const getXPHistory = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('xp_events')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// XP event names
+export const XP_EVENTS = {
+  DAILY_LOGIN: 'daily_login',
+  PEST_DETECTION: 'pest_detection',
+  COMMUNITY_POST: 'community_post',
+  COMMENT_POSTED: 'comment_posted',
+  LISTING_POSTED: 'listing_posted',
+  STREAK_7_DAYS: 'streak_7_days',
+  PROFILE_COMPLETE: 'profile_complete',
+  FIRST_SCAN: 'first_scan',
+  MARKET_VIEWED: 'market_viewed',
+  SCHEME_APPLIED: 'scheme_applied',
+};
+// Deduct XP when post deleted
+export const deductXP = async (
+  userId: string,
+  eventName: string
+): Promise<number> => {
+  const { data, error } = await supabase.rpc('deduct_xp', {
+    p_user_id: userId,
+    p_event_name: eventName,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Award XP once per day (duplicate prevention)
+export const awardXPOnceDaily = async (
+  userId: string,
+  eventName: string
+): Promise<number> => {
+  const { data, error } = await supabase.rpc('award_xp_once_daily', {
+    p_user_id: userId,
+    p_event_name: eventName,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Get user rank
+export const getUserRank = async (userId: string): Promise<number> => {
+  const { data, error } = await supabase.rpc('get_user_rank', {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  return data ?? 0;
+};
+
+// Get XP tier
+export const getXPTier = (xpPoints: number): string => {
+  if (xpPoints >= 1000) return 'Champion';
+  if (xpPoints >= 500) return 'Expert';
+  if (xpPoints >= 200) return 'Farmer';
+  return 'Seedling';
+};
+
+// Get XP needed for next tier
+export const getXPForNextTier = (xpPoints: number): number => {
+  if (xpPoints >= 1000) return 0;
+  if (xpPoints >= 500) return 1000 - xpPoints;
+  if (xpPoints >= 200) return 500 - xpPoints;
+  return 200 - xpPoints;
+};
+
+// Get tier progress percentage
+export const getTierProgress = (xpPoints: number): number => {
+  if (xpPoints >= 1000) return 100;
+  if (xpPoints >= 500) return ((xpPoints - 500) / 500) * 100;
+  if (xpPoints >= 200) return ((xpPoints - 200) / 300) * 100;
+  return (xpPoints / 200) * 100;
+};
+
+// Check if almost at next rank (within 10 XP)
+export const isAlmostNextRank = async (
+  userId: string
+): Promise<{ isClose: boolean; xpNeeded: number }> => {
+  const userInfo = await getUserXPInfo(userId);
+  const xpNeeded = getXPForNextTier(userInfo?.xp_points ?? 0);
+  return { isClose: xpNeeded <= 10 && xpNeeded > 0, xpNeeded };
+};
+// Fast leaderboard using pre-computed entries
+export const getFastLeaderboard = async (
+  periodType: 'weekly' | 'monthly' = 'weekly',
+  state?: string,
+  limit: number = 50
+) => {
+  const { data, error } = await supabase.rpc('get_fast_leaderboard', {
+    p_period_type: periodType,
+    p_state: state ?? null,
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get user rank fast with ROW_NUMBER
+export const getUserRankFast = async (
+  userId: string,
+  state?: string
+) => {
+  const { data, error } = await supabase.rpc('get_user_rank_fast', {
+    p_user_id: userId,
+    p_state: state ?? null,
+  });
+  if (error) throw error;
+  return data?.[0] ?? { rank: 0, xp_points: 0, total_users: 0 };
+};
+
+// Trigger weekly snapshot manually
+export const triggerWeeklySnapshot = async () => {
+  const { error } = await supabase.rpc(
+    'take_weekly_leaderboard_snapshot'
+  );
+  if (error) throw error;
+  return true;
+};

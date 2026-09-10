@@ -1,0 +1,154 @@
+import { supabase } from '../lib/supabase';
+
+// Update profile
+export const updateProfile = async (
+  userId: string,
+  updates: {
+    full_name?: string;
+    avatar_url?: string;
+    state?: string;
+    district?: string;
+    language?: string;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Update farm details
+export const updateFarmDetails = async (
+  farmId: string,
+  updates: {
+    farm_name?: string;
+    area_acres?: number;
+    soil_type?: string;
+    location_lat?: number;
+    location_lng?: number;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('farms')
+    .update(updates)
+    .eq('id', farmId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Delete account (soft delete)
+export const deleteAccount = async (userId: string) => {
+  // Soft delete in DB
+  const { error } = await supabase.rpc('delete_user_account', {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+
+  // Clean up storage files
+  await cleanupUserStorage(userId);
+
+  // Sign out
+  await supabase.auth.signOut();
+
+  return true;
+};
+
+// Clean up all user storage files
+export const cleanupUserStorage = async (userId: string) => {
+  const buckets = [
+    'avatars',
+    'pest-detections',
+    'marketplace',
+    'receipts',
+  ];
+
+  for (const bucket of buckets) {
+    try {
+      const { data: files } = await supabase.storage
+        .from(bucket)
+        .list(userId);
+
+      if (files && files.length > 0) {
+        const paths = files.map((f) => `${userId}/${f.name}`);
+        await supabase.storage.from(bucket).remove(paths);
+      }
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+};
+
+// Export user data
+export const exportUserData = async (userId: string): Promise<string> => {
+  const { data, error } = await supabase.rpc('export_user_data', {
+    p_user_id: userId,
+  });
+
+  if (error) throw error;
+
+  // Convert to JSON string
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+
+  // Upload to storage
+  const filePath = `exports/${userId}/${Date.now()}_data_export.json`;
+  const { error: uploadError } = await supabase.storage
+    .from('receipts')
+    .upload(filePath, blob, {
+      contentType: 'application/json',
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('receipts')
+    .getPublicUrl(filePath);
+
+  // Store export record
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await supabase.from('data_exports').insert({
+    user_id: userId,
+    export_url: urlData.publicUrl,
+    expires_at: expiresAt.toISOString(),
+  });
+
+  return urlData.publicUrl;
+};
+
+// Get previous exports
+export const getDataExports = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('data_exports')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Change language
+export const changeLanguage = async (
+  userId: string,
+  language: string
+) => {
+  const { error } = await supabase
+    .from('users')
+    .update({ language })
+    .eq('id', userId);
+
+  if (error) throw error;
+  return true;
+};

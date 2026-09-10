@@ -1,0 +1,31 @@
+import { supabase } from '../lib/supabase';
+
+// Get search suggestions
+export const getSearchSuggestions = async (
+  query: string
+): Promise<string[]> => {
+  if (query.length < 2) return [];
+
+  const { data, error } = await supabase
+    .rpc('get_search_suggestions', { p_query: query });
+
+  if (error) return [];
+  return (data ?? []).map((d: any) => d.suggestion);
+};
+
+// Track search query
+export const trackSearch = async (query: string) => {
+  if (query.length < 2) return;
+  await supabase.rpc('track_search', { p_query: query });
+};
+
+// Get trending searches
+export const getTrendingSearches = async (
+  limit: number = 10
+): Promise<string[]> => {
+  const { data, error } = await supabase
+    .rpc('get_trending_searches', { p_limit: limit });
+
+  if (error) return [];
+  return (data ?? []).map((d: any) => d.search_query);
+};

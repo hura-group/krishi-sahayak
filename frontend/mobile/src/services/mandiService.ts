@@ -1,0 +1,83 @@
+import { supabase } from '../lib/supabase';
+
+// Get market prices by state and crop
+export const getMandiPrices = async (
+  state: string = 'Gujarat',
+  cropName?: string,
+  limit: number = 20
+) => {
+  let query = supabase
+    .from('market_prices')
+    .select('*')
+    .eq('state', state)
+    .order('recorded_at', { ascending: false })
+    .limit(limit);
+
+  if (cropName) {
+    query = query.eq('crop_name', cropName);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get top 5 prices for dashboard ticker
+export const getTopMandiPrices = async (state: string = 'Gujarat') => {
+  const { data, error } = await supabase
+    .from('market_prices')
+    .select('*')
+    .eq('state', state)
+    .order('recorded_at', { ascending: false })
+    .limit(5);
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get price trend for last 7 days
+export const getPriceTrend = async (
+  cropName: string,
+  state: string = 'Gujarat'
+) => {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data, error } = await supabase
+    .from('market_prices')
+    .select('price_per_kg, price_date, recorded_at')
+    .eq('crop_name', cropName)
+    .eq('state', state)
+    .gte('price_date', sevenDaysAgo.toISOString().split('T')[0])
+    .order('price_date', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+};
+
+// Get price change % vs yesterday
+export const getPriceChange = async (
+  cropName: string,
+  state: string = 'Gujarat'
+): Promise<{ change: number; direction: 'up' | 'down' | 'same' }> => {
+  const { data } = await supabase
+    .from('market_prices')
+    .select('price_per_kg, price_date')
+    .eq('crop_name', cropName)
+    .eq('state', state)
+    .order('price_date', { ascending: false })
+    .limit(2);
+
+  if (!data || data.length < 2) {
+    return { change: 0, direction: 'same' };
+  }
+
+  const today = data[0].price_per_kg;
+  const yesterday = data[1].price_per_kg;
+  const change = ((today - yesterday) / yesterday) * 100;
+
+  return {
+    change: parseFloat(change.toFixed(2)),
+    direction: change > 0 ? 'up' : change < 0 ? 'down' : 'same',
+  };
+};

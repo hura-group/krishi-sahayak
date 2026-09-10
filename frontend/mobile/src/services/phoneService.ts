@@ -1,0 +1,38 @@
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
+
+// Validate phone number
+export const validatePhone = (phone: string, countryCode: string = 'IN') => {
+  try {
+    const isValid = isValidPhoneNumber(phone, countryCode as any);
+    if (!isValid) {
+      return { valid: false, error: 'Invalid phone number' };
+    }
+
+    const parsed = parsePhoneNumber(phone, countryCode as any);
+    return {
+      valid: true,
+      formatted: parsed.formatInternational(),
+      e164: parsed.format('E.164'), // +919426743810
+    };
+  } catch (err) {
+    return { valid: false, error: 'Invalid phone number format' };
+  }
+};
+
+// Format phone with country code
+export const formatPhoneWithCode = (
+  phone: string,
+  countryCode: string = '+91'
+) => {
+  const cleaned = phone.replace(/\D/g, '');
+  return `${countryCode}${cleaned}`;
+};
+
+// Country codes list
+export const countryCodes = [
+  { code: '+91', country: 'India', flag: '????', short: 'IN' },
+  { code: '+1', country: 'USA', flag: '????', short: 'US' },
+  { code: '+44', country: 'UK', flag: '????', short: 'GB' },
+  { code: '+971', country: 'UAE', flag: '????', short: 'AE' },
+  { code: '+61', country: 'Australia', flag: '????', short: 'AU' },
+];

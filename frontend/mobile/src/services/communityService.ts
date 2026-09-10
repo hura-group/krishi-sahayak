@@ -1,0 +1,146 @@
+import { supabase } from '../lib/supabase';
+
+export interface CommunityPost {
+  id: string;
+  user_id: string;
+  content: string;
+  images: string[];
+  category: string;
+  likes_count: number;
+  comments_count: number;
+  is_pinned: boolean;
+  is_admin_verified: boolean;
+  created_at: string;
+}
+
+// Get community posts with filters
+export const getCommunityPosts = async (
+  category?: string,
+  search?: string,
+  cursor?: string,
+  limit: number = 20
+): Promise<{ posts: CommunityPost[]; nextCursor: string | null }> => {
+  const { data, error } = await supabase.rpc('get_community_posts', {
+    p_category: category ?? null,
+    p_search: search ?? null,
+    p_cursor: cursor ?? null,
+    p_limit: limit + 1,
+  });
+
+  if (error) throw error;
+
+  const posts = data ?? [];
+  const hasMore = posts.length > limit;
+  if (hasMore) posts.pop();
+
+  const nextCursor = hasMore && posts.length > 0
+    ? posts[posts.length - 1].created_at
+    : null;
+
+  return { posts, nextCursor };
+};
+
+// Create new post
+export const createPost = async (
+  userId: string,
+  content: string,
+  category: string,
+  images: string[] = []
+) => {
+  const { data, error } = await supabase
+    .from('community_posts')
+    .insert({ user_id: userId, content, category, images })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+// Delete post
+export const deletePost = async (postId: string) => {
+  const { error } = await supabase
+    .from('community_posts')
+    .delete()
+    .eq('id', postId);
+
+  if (error) throw error;
+  return true;
+};
+
+// Toggle like
+export const toggleLike = async (
+  postId: string,
+  userId: string
+): Promise<boolean> => {
+  // Check if already liked
+  const { data: existing } = await supabase
+    .from('post_likes')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .single();
+
+  if (existing) {
+    // Unlike
+    await supabase
+      .from('post_likes')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId);
+    return false;
+  } else {
+    // Like
+    await supabase
+      .from('post_likes')
+      .insert({ post_id: postId, user_id: userId });
+    return true;
+  }
+};
+
+// Check if user liked a post
+export const isPostLiked = async (
+  postId: string,
+  userId: string
+): Promise<boolean> => {
+  const { data } = await supabase
+    .from('post_likes')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .single();
+
+  return !!data;
+};
+
+// Subscribe to new posts
+export const subscribeToNewPosts = (
+  onNewPost: (post: CommunityPost) => void
+) => {
+  const channel = supabase
+    .channel('community-posts-channel')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'community_posts',
+      },
+      (payload) => {
+        onNewPost(payload.new as CommunityPost);
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+// Get post categories
+export const getPostCategories = () => [
+  'all',
+  'Question',
+  'Tips',
+  'Success Story',
+  'Alert',
+  'Market Talk',
+];

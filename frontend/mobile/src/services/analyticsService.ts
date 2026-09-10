@@ -1,0 +1,27 @@
+import { usePostHog } from 'posthog-react-native';
+
+// OTP Event Names
+export const OTP_EVENTS = {
+  SENT: 'otp_sent',
+  VERIFIED: 'otp_verified',
+  FAILED: 'otp_failed',
+};
+
+// Hook to use analytics in components
+export const useOTPAnalytics = () => {
+  const posthog = usePostHog();
+
+  const logOTPSent = (phone: string) => {
+    posthog?.capture(OTP_EVENTS.SENT, { phone });
+  };
+
+  const logOTPVerified = (phone: string) => {
+    posthog?.capture(OTP_EVENTS.VERIFIED, { phone });
+  };
+
+  const logOTPFailed = (phone: string, reason: string) => {
+    posthog?.capture(OTP_EVENTS.FAILED, { phone, reason });
+  };
+
+  return { logOTPSent, logOTPVerified, logOTPFailed };
+};

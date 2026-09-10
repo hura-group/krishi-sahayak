@@ -1,0 +1,143 @@
+import { supabase } from '../lib/supabase';
+
+export type ReferralSource = 'search' | 'category' | 'home' | 'direct';
+export type ListingEvent =
+  | 'marketplace_listing_viewed'
+  | 'marketplace_listing_posted'
+  | 'marketplace_contact_tapped';
+
+// Track listing event
+export const trackListingEvent = async (
+  listingId: string,
+  eventType: ListingEvent,
+  userId?: string,
+  referralSource?: ReferralSource
+) => {
+  try {
+    await supabase.from('listing_analytics').insert({
+      listing_id: listingId,
+      user_id: userId ?? null,
+      event_type: eventType,
+      referral_source: referralSource ?? 'direct',
+    });
+  } catch {
+    // ignore analytics errors
+  }
+};
+
+// Increment views with self-view prevention
+export const trackListingView = async (
+  listingId: string,
+  viewerId?: string,
+  referralSource?: ReferralSource
+) => {
+  // Increment view counter
+  await supabase.rpc('increment_listing_views', {
+    p_listing_id: listingId,
+    p_viewer_id: viewerId ?? null,
+  });
+
+  // Track analytics event
+  await trackListingEvent(
+    listingId,
+    'marketplace_listing_viewed',
+    viewerId,
+    referralSource
+  );
+};
+
+// Track contact tapped
+export const trackContactTapped = async (
+  listingId: string,
+  userId?: string
+) => {
+  await trackListingEvent(
+    listingId,
+    'marketplace_contact_tapped',
+    userId
+  );
+};
+
+// Track listing posted
+export const trackListingPosted = async (
+  listingId: string,
+  userId: string
+) => {
+  await trackListingEvent(
+    listingId,
+    'marketplace_listing_posted',
+    userId
+  );
+};
+
+// Get listing analytics summary
+export const getListingAnalytics = async (listingId: string) => {
+  const { data, error } = await supabase
+    .from('listing_analytics')
+    .select('event_type, referral_source, created_at')
+    .eq('listing_id', listingId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const analytics = data ?? [];
+
+  // Calculate conversion rate
+  const views = analytics.filter(
+    (a) => a.event_type === 'marketplace_listing_viewed'
+  ).length;
+
+  const contacts = analytics.filter(
+    (a) => a.event_type === 'marketplace_contact_tapped'
+  ).length;
+
+  const conversionRate = views > 0
+    ? ((contacts / views) * 100).toFixed(1)
+    : '0';
+
+  // Referral source breakdown
+  const sources = analytics.reduce((acc: any, a) => {
+    const source = a.referral_source ?? 'direct';
+    acc[source] = (acc[source] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return { views, contacts, conversionRate, sources };
+};
+
+// Report listing
+export const reportListing = async (
+  listingId: string,
+  reporterId: string,
+  reason: string
+) => {
+  const { error } = await supabase
+    .from('listing_reports')
+    .insert({
+      listing_id: listingId,
+      reporter_id: reporterId,
+      reason,
+    });
+
+  if (error) throw error;
+  return true;
+};
+
+// Get report reasons
+export const getReportReasons = () => [
+  'Spam',
+  'Fake',
+  'Inappropriate',
+  'Duplicate',
+  'Wrong Category',
+  'Other',
+];
+
+// Format Indian price
+export const formatIndianPrice = (price: number): string => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(price);
+};
