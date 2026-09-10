@@ -60,18 +60,18 @@ echo -e "${GREEN}✅ Husky hooks installed${NC}"
 echo ""
 echo "Creating environment variable files..."
 
-if [ ! -f "apps/mobile/.env" ]; then
-  cp apps/mobile/.env.example apps/mobile/.env
-  echo -e "${AMBER}⚠️  Created apps/mobile/.env — open it and fill in your values${NC}"
+if [ ! -f "frontend/mobile/.env" ]; then
+  cp frontend/mobile/.env.example frontend/mobile/.env
+  echo -e "${AMBER}⚠️  Created frontend/mobile/.env — open it and fill in your values${NC}"
 else
-  echo "apps/mobile/.env already exists — skipping"
+  echo "frontend/mobile/.env already exists — skipping"
 fi
 
-if [ ! -f "apps/web/.env.local" ]; then
-  cp apps/web/.env.example apps/web/.env.local
-  echo -e "${AMBER}⚠️  Created apps/web/.env.local — open it and fill in your values${NC}"
+if [ ! -f "frontend/web/.env.local" ]; then
+  cp frontend/web/.env.example frontend/web/.env.local
+  echo -e "${AMBER}⚠️  Created frontend/web/.env.local — open it and fill in your values${NC}"
 else
-  echo "apps/web/.env.local already exists — skipping"
+  echo "frontend/web/.env.local already exists — skipping"
 fi
 
 # ── Step 6: Verify ESLint works ───────────────────────────────────────────
