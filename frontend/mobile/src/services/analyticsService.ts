@@ -11,16 +11,19 @@ export const OTP_EVENTS = {
 export const useOTPAnalytics = () => {
   const posthog = usePostHog();
 
-  const logOTPSent = (phone: string) => {
-    posthog?.capture(OTP_EVENTS.SENT, { phone });
+  const logOTPSent = (_phone: string) => {
+    posthog?.capture(OTP_EVENTS.SENT, { auth_method: 'sms' });
   };
 
-  const logOTPVerified = (phone: string) => {
-    posthog?.capture(OTP_EVENTS.VERIFIED, { phone });
+  const logOTPVerified = (_phone: string) => {
+    posthog?.capture(OTP_EVENTS.VERIFIED, { auth_method: 'sms' });
   };
 
-  const logOTPFailed = (phone: string, reason: string) => {
-    posthog?.capture(OTP_EVENTS.FAILED, { phone, reason });
+  const logOTPFailed = (_phone: string, _reason: string) => {
+    posthog?.capture(OTP_EVENTS.FAILED, {
+      auth_method: 'sms',
+      stage: 'verification',
+    });
   };
 
   return { logOTPSent, logOTPVerified, logOTPFailed };

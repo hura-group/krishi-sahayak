@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
+import { ANALYTICS_EVENTS } from '../../src/analytics/events';
 import { MarketFilterProvider } from '../../src/context/MarketFilterContext';
 import { useMarketFilter } from '../../hooks/useMarketFilter';
 import { useProfileDefaults } from '../../hooks/useProfileDefaults';
 import { FilterChips, FilterPanel, MarketPriceList } from '../../components/MarketFilter';
 
 const MarketPricesContent: React.FC = () => {
+  const posthog = usePostHog();
+
   // Seeds the filter once from the user's profile (home state) + actively
   // tracked crops — no-ops after the first successful run, and never
   // overrides a filter the user has since changed.
@@ -17,8 +21,19 @@ const MarketPricesContent: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refresh();
-    setRefreshing(false);
+    try {
+      await refresh();
+      posthog.capture(ANALYTICS_EVENTS.MARKET_PRICES_REFRESHED, {
+        current_result_count: prices.length,
+      });
+    } catch {
+      posthog.captureException(new Error('Market price refresh failed'), {
+        operation: 'market_prices_refresh',
+      });
+      throw error;
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const header = (

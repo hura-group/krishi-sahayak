@@ -56,13 +56,13 @@ cp apps/web/.env.example apps/web/.env.local
 # Fill in both files — see each app's README.md for details
 
 # 4. Start mobile
-cd apps/mobile && pnpm start
+cd frontend/mobile && pnpm start
 
 # 5. Start web (separate terminal)
-cd apps/web && pnpm dev
+cd frontend/web && pnpm dev
 ```
 
-Full setup guide: [`apps/mobile/README.md`](apps/mobile/README.md) · [`apps/web/README.md`](apps/web/README.md)
+Full setup guide: [`frontend/mobile/README.md`](frontend/mobile/README.md) · [`frontend/web/README.md`](frontend/web/README.md)
 
 ---
 

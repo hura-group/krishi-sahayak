@@ -16,7 +16,6 @@ build/
 pnpm-debug.log
 
 # Ignore env files in subfolders
-apps/mobile/.env
 frontend/mobile/.env
 
 # Ignore PDF research exports in docs

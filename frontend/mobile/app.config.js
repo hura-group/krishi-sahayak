@@ -33,6 +33,7 @@ export default ({ config }) => ({
 
  plugins: [
   ...(config.plugins ?? []),
+    'expo-localization',
     [
       'expo-location',
       {
@@ -54,5 +55,16 @@ export default ({ config }) => ({
     eas: {
       projectId: process.env.EXPO_PUBLIC_PROJECT_ID ?? '',
     },
+    posthogProjectToken: process.env.EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN,
+    posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST,
   },
 });
+
+/* eslint-env node */
+module.exports = {
+  expo: {
+    name: 'KrishiSahayak',
+    slug: 'krishi-sahayak',
+    // ... rest of your config
+  },
+};

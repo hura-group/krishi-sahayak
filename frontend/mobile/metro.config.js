@@ -2,24 +2,24 @@ const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
 const projectRoot = __dirname;
-const defaultConfig = getDefaultConfig(projectRoot);
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
-// Keep a reference to the original resolver
-const originalResolveRequest = defaultConfig.resolver.resolveRequest;
+const config = getDefaultConfig(projectRoot);
 
-defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Redirect react-native-maps to a lightweight web shim when bundling for web
-  if (moduleName === 'react-native-maps' && platform === 'web') {
-    return {
-      filePath: path.resolve(projectRoot, 'web-mocks', 'react-native-maps.js'),
-      type: 'sourceFile',
-    };
-  }
 
-  // Fallback to the original resolver
-  return originalResolveRequest
-    ? originalResolveRequest(context, moduleName, platform)
-    : context.resolveRequest(context, moduleName, platform);
-};
 
-module.exports = defaultConfig;
+// 1. Watch all files within the monorepo workspace
+config.watchFolders = [workspaceRoot];
+
+// 2. Force Metro to look inside both local and root node_modules
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
+// 3. Allow Metro to follow pnpm symlinks cleanly
+config.resolver.unstable_enableSymlinks = true;
+config.resolver.unstable_enablePackageExports = true;
+
+module.exports = config;
+

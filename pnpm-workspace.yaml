@@ -2,6 +2,14 @@ packages:
   - "apps/*"
   - "packages/*"
   - "backend"
+allowBuilds:
+  '@sentry/cli': false
+  core-js: false
+  unrs-resolver: false
+minimumReleaseAgeExclude:
+  - '@posthog/core@1.53.0'
+  - '@posthog/types@1.411.0'
+  - posthog-react-native@4.68.9
 overrides:
   '@babel/core@<=7.29.0': ^7.29.6
   '@humanfs/node@<0.16.8': ^0.16.8

@@ -1,6 +1,6 @@
 /**
  * Krishi Sahayak — Core Analytics Events
- * 15 events tracked via PostHog
+ * Core events tracked via PostHog
  */
 
 export const ANALYTICS_EVENTS = {
@@ -28,6 +28,12 @@ export const ANALYTICS_EVENTS = {
 
   // ── Market ────────────────────────────────────────────────
   MARKET_PRICE_VIEWED: 'market_price_viewed',   // Mandi price screen opened
+  MARKET_PRICES_REFRESHED: 'market_prices_refreshed',
+  PRICE_ALERT_CREATED: 'price_alert_created',
+  PRICE_ALERT_STATUS_CHANGED: 'price_alert_status_changed',
+  PRICE_ALERT_DELETED: 'price_alert_deleted',
+  MANDI_SELECTED: 'mandi_selected',
+  MANDI_DIRECTIONS_OPENED: 'mandi_directions_opened',
 
   // ── Navigation ────────────────────────────────────────────
   TAB_SWITCHED: 'tab_switched',                 // Bottom tab changed
@@ -47,15 +53,14 @@ export interface EventProperties {
   };
   app_background: Record<string, never>;
   otp_sent: {
-    phone_masked: string;   // e.g. "+91 ****1234"
+    auth_method: 'sms';
   };
   otp_verified: {
-    phone_masked: string;
-    is_new_user: boolean;
+    auth_method: 'sms';
   };
   otp_failed: {
-    phone_masked: string;
-    reason?: string;
+    auth_method: 'sms';
+    stage: 'request' | 'verification';
   };
   logout: Record<string, never>;
   onboarding_started: Record<string, never>;
@@ -82,6 +87,29 @@ export interface EventProperties {
   market_price_viewed: {
     commodity: string;
     mandi_name?: string;
+  };
+  market_prices_refreshed: {
+    current_result_count: number;
+  };
+  price_alert_created: {
+    alert_id: string;
+    crop_name: string;
+    condition: 'above' | 'below';
+  };
+  price_alert_status_changed: {
+    alert_id: string;
+    is_active: boolean;
+  };
+  price_alert_deleted: {
+    alert_id: string;
+  };
+  mandi_selected: {
+    mandi_id: string;
+    commodity_count: number;
+    is_open_now: boolean;
+  };
+  mandi_directions_opened: {
+    mandi_id: string;
   };
   tab_switched: {
     from_tab: string;

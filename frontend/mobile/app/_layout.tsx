@@ -1,17 +1,48 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, usePathname } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
+import { usePostHog } from 'posthog-react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { PostHogProvider } from '@/src/analytics/PostHogProvider';
+import { AuthProvider } from '@/src/context/AuthContext';
 
 type TabBarIconProps = {
   color: string;
 };
 
+function ScreenTracker() {
+  const pathname = usePathname();
+  const posthog = usePostHog();
+  const previousPathname = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      posthog.screen(pathname, {
+        previous_screen: previousPathname.current ?? null,
+      });
+      previousPathname.current = pathname;
+    }
+  }, [pathname, posthog]);
+
+  return null;
+}
+
 export default function TabLayout() {
+  return (
+    <PostHogProvider>
+      <AuthProvider>
+        <ScreenTracker />
+        <AppTabs />
+      </AuthProvider>
+    </PostHogProvider>
+  );
+}
+
+function AppTabs() {
   const colorScheme = useColorScheme();
 
   return (
