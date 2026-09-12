@@ -1,6 +1,5 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - "frontend/*"
   - "backend"
 allowBuilds:
   '@sentry/cli': false
