@@ -5,7 +5,7 @@
  * Uses jest.spyOn(Date, 'now') to make time deterministic.
  */
 
-import { timeAgo, formatAlertDate } from '../../../frontend/mobile/src/utils/timeAgo';
+import { timeAgo, formatAlertDate } from '../../../apps/mobile/src/utils/timeAgo';
 
 // Pin "now" to a fixed timestamp so tests don't drift
 const NOW_ISO  = '2026-04-24T12:00:00.000Z';

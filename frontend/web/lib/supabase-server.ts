@@ -1,18 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key';
-const isTestEnvironment = process.env.NODE_ENV === 'test' || !!process.env.JEST_WORKER_ID;
+const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey  = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Server-side client — used in RSC / route handlers.
-// Jest loads this module before the tests install their mock. In test mode we
-// intentionally avoid creating a live Supabase client so the suite can stub it
-// without tripping library validation or leaving open handles.
-export const supabaseServer = isTestEnvironment
-  ? ({ from: () => ({}) } as any)
-  : createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false },
-    });
+// Server-side client — used in RSC / route handlers
+// No browser session needed here; public anon key is fine for market_prices (public table)
+export const supabaseServer = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false },
+});
 
 // ─── Market price types ───────────────────────────────────────
 
@@ -68,7 +63,7 @@ export async function fetchUniqueCommodities(): Promise<string[]> {
     .from('market_prices')
     .select('crop_name')
     .order('crop_name');
-  const names = [...new Set<string>((data ?? []).map((r: { crop_name: unknown }) => String(r.crop_name)))];
+  const names = [...new Set((data ?? []).map((r: { crop_name: string }) => r.crop_name))];
   return names;
 }
 
@@ -77,6 +72,6 @@ export async function fetchUniqueStates(): Promise<string[]> {
     .from('market_prices')
     .select('state')
     .order('state');
-  const states = [...new Set<string>((data ?? []).map((r: { state: unknown }) => String(r.state)))];
+  const states = [...new Set((data ?? []).map((r: { state: string }) => r.state))];
   return states;
 }

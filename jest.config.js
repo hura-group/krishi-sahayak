@@ -1,5 +1,4 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
-/* eslint-env node */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
@@ -7,8 +6,8 @@ module.exports = {
 
   moduleNameMapper: {
     // Root aliases
-    '^@/(.*)$':     '<rootDir>/frontend/mobile/src/$1',
-    '^@web/(.*)$':  '<rootDir>/frontend/web/$1',
+    '^@/(.*)$':     '<rootDir>/apps/mobile/src/$1',
+    '^@web/(.*)$':  '<rootDir>/apps/web/$1',
     // Stub React Native modules that aren't available in Node
     '^react-native$':              '<rootDir>/__tests__/mocks/reactNative.stub.ts',
     '^react-native-maps$':         '<rootDir>/__tests__/mocks/reactNativeMaps.stub.ts',
@@ -33,8 +32,8 @@ module.exports = {
         jsx:                       'react',
         baseUrl:                   '.',
         paths: {
-          '@/*':    ['frontend/mobile/src/*'],
-          '@web/*': ['frontend/web/*'],
+          '@/*':    ['apps/mobile/src/*'],
+          '@web/*': ['apps/web/*'],
         },
       },
       diagnostics: { ignoreCodes: ['TS151001', 2307, 2339, 2345] },
@@ -55,18 +54,18 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'text-summary', 'lcov', 'json-summary'],
   collectCoverageFrom: [
-    'frontend/mobile/src/utils/alertEvaluator.ts',
-    'frontend/mobile/src/utils/timeAgo.ts',
-    'frontend/mobile/src/services/mandiLocatorService.ts',
-    'frontend/mobile/src/services/priceAlertService.ts',
-    'frontend/web/lib/supabase-server.ts',
+    'apps/mobile/src/utils/alertEvaluator.ts',
+    'apps/mobile/src/utils/timeAgo.ts',
+    'apps/mobile/src/services/mandiLocatorService.ts',
+    'apps/mobile/src/services/priceAlertService.ts',
+    'apps/web/lib/supabase-server.ts',
   ],
   coverageThreshold: {
     global: {
-      branches:   60,
-      functions:  70,
-      lines:      80,
-      statements: 80,
+      branches:   80,
+      functions:  90,
+      lines:      90,
+      statements: 90,
     },
   },
 

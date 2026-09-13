@@ -15,7 +15,7 @@ import {
   classifyTrend,
   COOLDOWN_MINUTES,
   AlertRecord,
-} from '../../../frontend/mobile/src/utils/alertEvaluator';
+} from '../../../apps/mobile/src/utils/alertEvaluator';
 import { FIXTURE_LATEST_PRICES } from '../../fixtures';
 
 const NOW_MS = new Date('2026-04-24T12:00:00.000Z').getTime();

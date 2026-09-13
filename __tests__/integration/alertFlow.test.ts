@@ -16,7 +16,7 @@
  * fired and with what payload.
  */
 
-import { evaluateAlert, kgToQtl } from '../../frontend/mobile/src/utils/alertEvaluator';
+import { evaluateAlert, kgToQtl } from '../../apps/mobile/src/utils/alertEvaluator';
 import { FIXTURE_ALERTS, FIXTURE_LATEST_PRICES } from '../fixtures';
 
 // ─── Types ────────────────────────────────────────────────────
