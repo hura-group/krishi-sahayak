@@ -23,7 +23,7 @@ const mockClient = {
   functions: { invoke: jest.fn() },
 };
 
-jest.mock('../../../apps/mobile/src/lib/supabase', () => ({
+jest.mock('../../../frontend/mobile/src/lib/supabase', () => ({
   supabase: mockClient,
 }));
 
@@ -36,7 +36,7 @@ import {
   getAlertHistory,
   triggerAlertCheck,
   CreateAlertPayload,
-} from '../../../apps/mobile/src/services/priceAlertService';
+} from '../../../frontend/mobile/src/services/priceAlertService';
 
 // ─── Helpers ─────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@
  *   6. Timeout simulation: promise that never resolves is handled
  */
 
-import { evaluateAlert }       from '../../apps/mobile/src/utils/alertEvaluator';
+import { evaluateAlert }       from '../../frontend/mobile/src/utils/alertEvaluator';
 import { FIXTURE_MARKET_PRICES, FIXTURE_LATEST_PRICES } from '../fixtures';
 
 // ─── Simple in-memory cache (mirrors what a real app would do) ─

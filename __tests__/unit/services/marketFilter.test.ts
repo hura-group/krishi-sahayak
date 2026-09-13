@@ -4,18 +4,14 @@
  */
 
 import { FIXTURE_MARKET_PRICES } from '../../fixtures';
-
-const mockFrom = jest.fn();
-
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({ from: mockFrom, auth: { getUser: jest.fn() } })),
-}));
-
 import {
+  supabaseServer,
   fetchMarketPrices,
   fetchUniqueCommodities,
   fetchUniqueStates,
-} from '../../../apps/web/lib/supabase-server';
+} from '../../../frontend/web/lib/supabase-server';
+
+const mockFrom = jest.fn();
 
 // ── Chain builder ─────────────────────────────────────────────
 
@@ -33,7 +29,10 @@ function setup(rows: any[], error?: { message: string }) {
   mockFrom.mockReturnValue(makeChain(rows, error));
 }
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.clearAllMocks();
+  (supabaseServer as any).from = mockFrom;
+});
 
 // ── price_per_qtl ─────────────────────────────────────────────
 

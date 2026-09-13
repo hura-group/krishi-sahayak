@@ -10,7 +10,7 @@
  */
 
 // Block the UTF-16 mobile supabase client from loading — mandiLocator pure functions don't need it
-jest.mock('../../../apps/mobile/src/lib/supabase', () => ({
+jest.mock('../../../frontend/mobile/src/lib/supabase', () => ({
   supabase: { from: jest.fn(), auth: { getUser: jest.fn() }, functions: { invoke: jest.fn() } },
 }), { virtual: true });
 
@@ -22,7 +22,7 @@ import {
   isMandiOpenNow,
   buildDirectionsUrl,
   OperatingHours,
-} from '../../../apps/mobile/src/services/mandiLocatorService';
+} from '../../../frontend/mobile/src/services/mandiLocatorService';
 
 // ─── haversineKm() ────────────────────────────────────────────
 
