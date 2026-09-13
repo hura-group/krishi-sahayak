@@ -14,10 +14,18 @@ build/
 .expo/
 *.tsbuildinfo
 pnpm-debug.log
+package-lock.json
+**/package-lock.json
 
 # Ignore env files in subfolders
-apps/mobile/.env
 frontend/mobile/.env
 
 # Ignore PDF research exports in docs
 docs/*.pdf
+node_modules
+node_modules
+node_modules
+
+node_modules/
+
+node_modules/

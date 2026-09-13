@@ -7,12 +7,10 @@
 #   - manual trigger:   workflow_dispatch (any team member can trigger manually)
 #
 # Secrets required (set in GitHub → Settings → Secrets → Actions):
-#   EXPO_TOKEN          — from expo.dev → Account Settings → Access Tokens
-#   SENTRY_DSN          — from sentry.io → Project → Settings → Client Keys
-#   POSTHOG_KEY         — from posthog.com → Project Settings → API Key
-#   SUPABASE_URL        — Supabase project URL
-#   SUPABASE_ANON_KEY   — Supabase anon key
-#   GOOGLE_MAPS_KEY     — Google Maps API key
+#   EXPO_TOKEN         — from expo.dev → Account Settings → Access Tokens
+#   SENTRY_DSN         — from sentry.io → Project → Settings → Client Keys
+#   POSTHOG_KEY        — from posthog.com → Project Settings → API Key
+#   GOOGLE_MAPS_KEY    — Google Maps API key
 #
 # Owner: Umang (B) — Backend · DevOps · APIs
 # ─────────────────────────────────────────────────────────────────────────────
@@ -59,7 +57,7 @@ env:
   PNPM_VERSION: '9'
 
 jobs:
-  # ── Build gate: only build if CI passed ────────────────────────────────────
+  # ── Build gate: check trigger ──────────────────────────────────────────────
   check-ci:
     name: 🔍 Verify CI Status
     runs-on: ubuntu-latest
@@ -70,7 +68,6 @@ jobs:
       - name: Check CI passed for this commit
         id: check
         run: |
-          # For releases and manual triggers, always build
           if [[ "${{ github.event_name }}" == "release" ]] || \
              [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "should-build=true" >> $GITHUB_OUTPUT
@@ -120,7 +117,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android APK (preview)
-        working-directory: apps/mobile
+        working-directory: frontend/mobile
         run: |
           eas build \
             --profile preview \
@@ -159,7 +156,6 @@ jobs:
         (inputs.platform == 'android' || inputs.platform == 'all') &&
         inputs.profile == 'production'))
     timeout-minutes: 60
-    environment: production  # Requires manual approval in GitHub Environments
 
     steps:
       - name: Checkout code
@@ -188,7 +184,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build Android AAB (production)
-        working-directory: apps/mobile
+        working-directory: frontend/mobile
         run: |
           eas build \
             --profile production \
@@ -228,7 +224,6 @@ jobs:
         (inputs.platform == 'ios' || inputs.platform == 'all') &&
         inputs.profile == 'production'))
     timeout-minutes: 90
-    environment: production
 
     steps:
       - name: Checkout code
@@ -257,7 +252,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build iOS IPA (production)
-        working-directory: apps/mobile
+        working-directory: frontend/mobile
         run: |
           eas build \
             --profile production \
@@ -272,7 +267,7 @@ jobs:
           SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
           EXPO_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
 
-  # ── Deploy Web to Vercel (triggered on main push only) ────────────────────
+  # ── Deploy Web to Vercel ───────────────────────────────────────────────────
   deploy-web:
     name: 🌍 Deploy Web (Vercel)
     runs-on: ubuntu-latest
@@ -299,7 +294,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Next.js app
-        working-directory: apps/web
+        working-directory: frontend/web
         run: pnpm build
         env:
           NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.SUPABASE_URL }}
@@ -308,7 +303,5 @@ jobs:
           NEXT_PUBLIC_POSTHOG_KEY:       ${{ secrets.POSTHOG_KEY }}
           SENTRY_DSN:                    ${{ secrets.SENTRY_DSN }}
 
-      # Note: Vercel auto-deploys via its own GitHub integration (set up in Vercel dashboard)
-      # This build step validates the web app compiles successfully before Vercel deploys it
       - name: Confirm build success
         run: echo "✅ Web build successful — Vercel will auto-deploy"

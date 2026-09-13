@@ -1,9 +1,10 @@
+import Constants from 'expo-constants';
 import React, { useEffect } from 'react';
 import { PostHogProvider as NativePostHogProvider, usePostHog } from 'posthog-react-native';
 import { setPostHogClient } from './analytics';
 
-const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_API_KEY ?? 'YOUR_POSTHOG_API_KEY';
-const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://app.posthog.com';
+const POSTHOG_PROJECT_TOKEN = Constants.expoConfig?.extra?.posthogProjectToken as string | undefined;
+const POSTHOG_HOST = Constants.expoConfig?.extra?.posthogHost as string | undefined;
 
 // Inner component that wires up the singleton client
 function PostHogClientBridge() {
@@ -39,16 +40,27 @@ interface Props {
  * }
  */
 export function PostHogProvider({ children }: Props) {
+  if (!POSTHOG_PROJECT_TOKEN || !POSTHOG_HOST) {
+    if (__DEV__) {
+      const missingVariable = !POSTHOG_PROJECT_TOKEN
+        ? 'EXPO_PUBLIC_POSTHOG_PROJECT_TOKEN'
+        : 'EXPO_PUBLIC_POSTHOG_HOST';
+      throw new Error(
+        `${missingVariable} variable required by PostHog is missing or un-configured, ` +
+        `this causes events to be silently missed. This error stops appearing once ${missingVariable} is configured`
+      );
+    }
+    return <>{children}</>;
+  }
+
   return (
     <NativePostHogProvider
-      apiKey={POSTHOG_API_KEY}
+      apiKey={POSTHOG_PROJECT_TOKEN}
       options={{
         host: POSTHOG_HOST,
         // Flush events every 30 s or when 20 events accumulate
         flushInterval: 30000,
         flushAt: 20,
-        // Disable in dev to avoid polluting production data
-        disabled: false,
       }}
     >
       <PostHogClientBridge />

@@ -43,7 +43,7 @@ echo -e "${GREEN}✅ Dependencies installed${NC}"
 # ── Step 3b: Install Expo-managed native packages ──────────────────────────
 echo ""
 echo "Installing Expo native packages..."
-cd apps/mobile
+cd frontend/mobile
 npx expo install react-native-maps expo-location expo-notifications expo-device 2>/dev/null || true
 cd ../..
 echo -e "${GREEN}✅ Native packages installed${NC}"
@@ -90,7 +90,7 @@ echo -e "${GREEN}🌾  Setup complete!${NC}"
 echo ""
 echo "Next steps:"
 echo "  1. Fill in your environment variables:"
-echo "     open apps/mobile/.env"
+echo "     open frontend/mobile/.env"
 echo ""
 echo "     Required keys:"
 echo "       EXPO_PUBLIC_SUPABASE_URL      — from supabase.com → Settings → API"
@@ -108,7 +108,7 @@ echo "     supabase/migrations/20260424000001_price_alerts.sql"
 echo "     supabase/migrations/20260424000002_mandis.sql"
 echo ""
 echo "  3. Start the mobile app:"
-echo "     cd apps/mobile && pnpm start"
+echo "     cd frontend/mobile && pnpm start"
 echo ""
 echo "  4. Read CONTRIBUTING.md before your first commit."
 echo ""

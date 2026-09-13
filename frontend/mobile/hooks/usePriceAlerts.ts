@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
+import { ANALYTICS_EVENTS } from '../src/analytics/events';
 import {
   AlertHistoryItem,
   CreateAlertPayload,
@@ -24,6 +26,7 @@ interface UsePriceAlertsReturn {
 }
 
 export const usePriceAlerts = (): UsePriceAlertsReturn => {
+  const posthog = usePostHog();
   const [alerts,         setAlerts]         = useState<PriceAlert[]>([]);
   const [history,        setHistory]        = useState<AlertHistoryItem[]>([]);
   const [loading,        setLoading]        = useState(true);
@@ -67,21 +70,38 @@ export const usePriceAlerts = (): UsePriceAlertsReturn => {
     try {
       const newAlert = await createAlert(payload);
       setAlerts(prev => [newAlert, ...prev]);
+      posthog.capture(ANALYTICS_EVENTS.PRICE_ALERT_CREATED, {
+        alert_id: newAlert.id,
+        crop_name: newAlert.crop_name,
+        condition: newAlert.condition,
+      });
+    } catch (error) {
+      posthog.captureException(new Error('Price alert creation failed'), {
+        operation: 'price_alert_create',
+      });
+      throw error;
     } finally {
       setCreating(false);
     }
-  }, []);
+  }, [posthog]);
 
   const toggle = useCallback(async (id: string, isActive: boolean) => {
     // Optimistic update
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_active: isActive } : a));
     try {
       await toggleAlert(id, isActive);
+      posthog.capture(ANALYTICS_EVENTS.PRICE_ALERT_STATUS_CHANGED, {
+        alert_id: id,
+        is_active: isActive,
+      });
     } catch {
       // Roll back
       setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_active: !isActive } : a));
+      posthog.captureException(new Error('Price alert status change failed'), {
+        operation: 'price_alert_status_change',
+      });
     }
-  }, []);
+  }, [posthog]);
 
   const remove = useCallback(async (id: string) => {
     // Optimistic
@@ -90,10 +110,14 @@ export const usePriceAlerts = (): UsePriceAlertsReturn => {
       await deleteAlert(id);
       // Also purge from history display
       setHistory(prev => prev.filter(h => h.alert_id !== id));
+      posthog.capture(ANALYTICS_EVENTS.PRICE_ALERT_DELETED, { alert_id: id });
     } catch {
       await loadAlerts();
+      posthog.captureException(new Error('Price alert deletion failed'), {
+        operation: 'price_alert_delete',
+      });
     }
-  }, [loadAlerts]);
+  }, [loadAlerts, posthog]);
 
   return { alerts, history, loading, historyLoading, error, creating, refresh, create, toggle, remove };
 };

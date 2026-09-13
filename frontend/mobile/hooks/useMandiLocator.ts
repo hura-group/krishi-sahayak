@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
+import { ANALYTICS_EVENTS } from '../src/analytics/events';
 import {
   Mandi,
   MandiCommodity,
@@ -42,6 +44,7 @@ export const useMandiLocator = (
   fallbackDistrict?: string,
   fallbackState?:    string
 ): UseMandiLocatorReturn => {
+  const posthog = usePostHog();
   const [mandis,             setMandis]             = useState<Mandi[]>([]);
   const [selectedMandi,      setSelectedMandi]      = useState<Mandi | null>(null);
   const [commodities,        setCommodities]        = useState<MandiCommodity[]>([]);
@@ -106,20 +109,38 @@ export const useMandiLocator = (
     try {
       const data = await getMandiCommodities(mandi.id);
       setCommodities(data);
+      posthog.capture(ANALYTICS_EVENTS.MANDI_SELECTED, {
+        mandi_id: mandi.id,
+        commodity_count: data.length,
+        is_open_now: mandi.isOpenNow ?? false,
+      });
     } catch {
       setCommodities([]);
+      posthog.captureException(new Error('Mandi commodity loading failed'), {
+        operation: 'mandi_commodity_load',
+      });
     } finally {
       setCommoditiesLoading(false);
     }
-  }, []);
+  }, [posthog]);
 
   const openDirections = useCallback((mandi: Mandi) => {
     const url = buildDirectionsUrl(
       mandi.lat, mandi.lng, mandi.name,
       userLocation?.lat, userLocation?.lng
     );
-    Linking.openURL(url);
-  }, [userLocation]);
+    void Linking.openURL(url)
+      .then(() => {
+        posthog.capture(ANALYTICS_EVENTS.MANDI_DIRECTIONS_OPENED, {
+          mandi_id: mandi.id,
+        });
+      })
+      .catch(() => {
+        posthog.captureException(new Error('Mandi directions failed to open'), {
+          operation: 'mandi_directions_open',
+        });
+      });
+  }, [posthog, userLocation]);
 
   return {
     mandis,
