@@ -53,10 +53,24 @@ export function track<E extends EventName>(event: E, properties?: EventPropertie
     }
     return;
   }
-  _posthog.capture(event, {
+
+  const payload = {
     ...properties,
     app_env: process.env.APP_ENV ?? 'development',
-  });
+  };
+
+  // 1. Capture custom typed event
+  _posthog.capture(event, payload);
+
+  // 2. Capture standard $pageview with web properties for PostHog Web Analytics check
+  if (event.endsWith('_viewed') || event === 'app_open') {
+    const currentUrl = typeof window !== 'undefined' ? window.location.href : `http://localhost/${event}`;
+    _posthog.capture('$pageview', {
+      $current_url: currentUrl,$host: typeof window !== 'undefined' ? window.location.host : 'localhost',
+      $pathname: typeof window !== 'undefined' ? window.location.pathname : `/${event}`,
+      ...payload,
+    });
+  }
 }
 
 export function identify(userId: string, traits?: { name?: string; state?: string; district?: string; preferred_lang?: string; land_size_acres?: number; role?: string }): void {
