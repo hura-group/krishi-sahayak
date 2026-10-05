@@ -11,6 +11,7 @@ export type EventName =
   | 'profile_completed'
   | 'weather_viewed'
   | 'market_price_viewed'
+  | 'mandi_locator_viewed'
   | 'pest_scan_started'
   | 'pest_scan_completed'
   | 'pest_scan_failed'
@@ -28,6 +29,7 @@ export interface EventProperties {
   profile_completed: { state?: string; land_size_acres?: number; crop_count?: number };
   weather_viewed: { state?: string; district?: string; source?: 'home_widget' | 'bottom_nav' | 'deep_link' };
   market_price_viewed: { commodity?: string; state?: string; source?: 'home_ticker' | 'bottom_nav' | 'price_alert' };
+  mandi_locator_viewed: { source?: 'bottom_nav' | 'deep_link' };
   pest_scan_started: { source?: 'fab_button' | 'home_action' | 'deep_link' };
   pest_scan_completed: { disease_name?: string; confidence_score?: number; confidence_bucket?: 'low' | 'medium' | 'high'; crop_name?: string };
   pest_scan_failed: { error_type?: 'api_error' | 'timeout' | 'rate_limit' | 'bad_image' };
