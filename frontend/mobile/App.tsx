@@ -1,30 +1,32 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { ExpoRoot } from 'expo-router';
+import { PostHogProvider, usePostHog } from 'posthog-react-native';
+import { setPostHogInstance } from './src/utils/analytics';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Krishi Sahayak</Text>
-      <Text style={styles.subtitle}>Mobile Platform Ready</Text>
-    </View>
-  );
+function PostHogSetup(): null {
+  const posthog = usePostHog();
+  React.useEffect(() => {
+    if (posthog) {
+      setPostHogInstance(posthog);
+    }
+  }, [posthog]);
+  return null;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1b382b',
-  },
-  title: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: '#a3e635',
-    fontSize: 18,
-  },
-});
+export default function App() {
+  // @ts-ignore
+  const ctx = require.context('./app');
+  
+  return (
+    <PostHogProvider
+      apiKey={process.env.EXPO_PUBLIC_POSTHOG_KEY ?? ''}
+      options={{
+        host: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
+        captureAppLifecycleEvents: true,
+      }}
+    >
+      <PostHogSetup />
+      <ExpoRoot context={ctx} />
+    </PostHogProvider>
+  );
+}

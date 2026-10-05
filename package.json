@@ -10,8 +10,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "tsc --noEmit && pnpm -r typecheck",
     "test": "pnpm -r test",
-    "test:coverage": "pnpm -r test:coverage",
-    "prepare": "husky"
+    "test:coverage": "pnpm -r test:coverage"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -27,6 +26,7 @@
     ]
   },
   "devDependencies": {
+    "@react-native/debugger-frontend": "^0.87.1",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.0.0",
     "@types/react": "~19.1.10",
