@@ -1,290 +1,482 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  RefreshControl,
-  SafeAreaView,
-  SectionList,
+  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
-import { usePriceAlerts }   from '../../../hooks/usePriceAlerts';
-import { useAuth }          from '../../context/AuthContext';
-import { registerForPushNotifications } from '../../services/notificationService';
-import {
-  AlertHistoryItemRow,
-  CreateAlertSheet,
-  EmptyAlerts,
-  PriceAlertCard,
-} from '../../../components/PriceAlerts';
-import { AlertHistoryItem } from '../../services/priceAlertService';
+import { tokens } from '@/theme/tokens';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { track, type EventName } from '@/utils/analytics';
 
-type Tab = 'active' | 'history';
+const CROPS = [
+  'Wheat', 'Rice', 'Maize', 'Bajra', 'Jowar',
+  'Cotton', 'Groundnut', 'Soybean', 'Sugarcane',
+  'Onion', 'Potato', 'Tomato', 'Mustard', 'Tur Dal',
+];
 
-// ── Group history items by date ──────────────────────────────
-function groupByDate(items: AlertHistoryItem[]) {
-  const groups: Record<string, AlertHistoryItem[]> = {};
-  for (const item of items) {
-    const day = new Date(item.triggered_at).toLocaleDateString('en-IN', {
-      weekday: 'long', day: 'numeric', month: 'long',
-    });
-    if (!groups[day]) groups[day] = [];
-    groups[day].push(item);
-  }
-  return Object.entries(groups).map(([title, data]) => ({ title, data }));
-}
+const STATES = [
+  'Gujarat', 'Maharashtra', 'Punjab', 'Haryana',
+  'Uttar Pradesh', 'Madhya Pradesh', 'Rajasthan',
+  'Karnataka', 'Andhra Pradesh', 'Telangana',
+  'Tamil Nadu', 'West Bengal', 'Bihar',
+];
 
-export default function AlertsScreen() {
-  const { user }                                    = useAuth();
-  const { alerts, history, loading, historyLoading,
-          error, creating, refresh, create,
-          toggle, remove }                          = usePriceAlerts();
-  const [tab,          setTab]          = useState<Tab>('active');
-  const [sheetOpen,    setSheetOpen]    = useState(false);
-  const [refreshing,   setRefreshing]   = useState(false);
-  const tabIndicator                    = useRef(new Animated.Value(0)).current;
+export default function PriceAlertsScreen() {
+  const [activeTab, setActiveTab] = useState<'ALERTS' | 'HISTORY'>('ALERTS');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Register for push notifications on first load
+  // Modal Flow States
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalStep, setModalStep] = useState<'CHOOSE_CROP' | 'SET_ALERT'>('CHOOSE_CROP');
+  const [selectedCrop, setSelectedCrop] = useState('Wheat');
+  const [selectedState, setSelectedState] = useState('Gujarat');
+  const [condition, setCondition] = useState<'ABOVE' | 'BELOW'>('ABOVE');
+  const [targetPrice, setTargetPrice] = useState('');
+
   useEffect(() => {
-    if (user?.id) registerForPushNotifications(user.id);
-  }, [user?.id]);
+    track('price_alerts_viewed' as any, { tab: activeTab } as any);
+  }, [activeTab]);
 
-  // Animate tab indicator
-  const switchTab = (t: Tab) => {
-    setTab(t);
-    Animated.spring(tabIndicator, {
-      toValue:         t === 'active' ? 0 : 1,
-      useNativeDriver: false,
-      tension:         80, friction:  12,
-    }).start();
+  const handleOpenNewAlert = () => {
+    setModalStep('CHOOSE_CROP');
+    setIsModalVisible(true);
+    track('price_alert_modal_opened' as any);
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await refresh();
-    setRefreshing(false);
+  const handleSelectCrop = (crop: string) => {
+    setSelectedCrop(crop);
+    setModalStep('SET_ALERT');
   };
 
-  const activeAlerts  = alerts.filter(a => a.is_active);
-  const pausedAlerts  = alerts.filter(a => !a.is_active);
-  const historySections = groupByDate(history);
-
-  const indicatorLeft = tabIndicator.interpolate({
-    inputRange:  [0, 1],
-    outputRange: ['0%', '50%'],
-  });
-
-  // ── Active tab content ──────────────────────────────────────
-  const renderActive = () => {
-    if (loading) {
-      return (
-        <View style={styles.centre}>
-          <ActivityIndicator size="large" color="#2D7A3A" />
-        </View>
-      );
-    }
-    if (error) {
-      return (
-        <View style={styles.centre}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
-          <TouchableOpacity onPress={refresh} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    if (alerts.length === 0) {
-      return <EmptyAlerts onAdd={() => setSheetOpen(true)} />;
-    }
-
-    const sections = [
-      ...(activeAlerts.length  > 0 ? [{ key: 'active',  label: `Active  (${activeAlerts.length})`,  data: activeAlerts }]  : []),
-      ...(pausedAlerts.length > 0 ? [{ key: 'paused',  label: `Paused  (${pausedAlerts.length})`,  data: pausedAlerts }] : []),
-    ];
-
-    return (
-      <FlatList
-        data={sections}
-        keyExtractor={s => s.key}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#2D7A3A" />}
-        renderItem={({ item: section }) => (
-          <View>
-            <Text style={styles.sectionHeader}>{section.label}</Text>
-            {section.data.map(alert => (
-              <PriceAlertCard
-                key={alert.id}
-                alert={alert}
-                onToggle={toggle}
-                onDelete={remove}
-              />
-            ))}
-          </View>
-        )}
-        contentContainerStyle={{ paddingBottom: 120 }}
-      />
-    );
-  };
-
-  // ── History tab content ─────────────────────────────────────
-  const renderHistory = () => {
-    if (historyLoading) {
-      return (
-        <View style={styles.centre}>
-          <ActivityIndicator size="large" color="#2D7A3A" />
-        </View>
-      );
-    }
-    if (history.length === 0) {
-      return (
-        <View style={styles.centre}>
-          <Text style={styles.emptyIcon}>📭</Text>
-          <Text style={styles.emptyTitle}>No alerts triggered yet</Text>
-          <Text style={styles.emptySub}>Your alert history will appear here{'\n'}once prices hit your targets.</Text>
-        </View>
-      );
-    }
-    return (
-      <SectionList
-        sections={historySections}
-        keyExtractor={item => item.id}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.dateHeader}>
-            <Text style={styles.dateHeaderText}>{section.title}</Text>
-          </View>
-        )}
-        renderItem={({ item }) => <AlertHistoryItemRow item={item} />}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#2D7A3A" />}
-        contentContainerStyle={{ paddingBottom: 32 }}
-        stickySectionHeadersEnabled
-      />
-    );
+  const handleSetAlert = () => {
+    track('price_alert_created' as any, {
+      commodity: selectedCrop,
+      state: selectedState,
+      condition,
+      targetPrice,
+    } as any);
+    setIsModalVisible(false);
+    alert(`Alert active for ${selectedCrop} in ${selectedState} when price goes ${condition.toLowerCase()} ₹${targetPrice}/qtl`);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* ── Top bar ───────────────────────────────────────── */}
-      <View style={styles.topBar}>
+    <View style={styles.container}>
+      {/* Top Header */}
+      <View style={styles.topHeader}>
         <View>
-          <Text style={styles.heading}>Price Alerts</Text>
-          <Text style={styles.subheading}>
-            {alerts.length === 0
-              ? 'No alerts set'
-              : `${activeAlerts.length} active · ${history.length} triggered`}
-          </Text>
+          <Text style={styles.title}>Price Alerts</Text>
+          <Text style={styles.subTitle}>No alerts set</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setSheetOpen(true)}>
-          <Text style={styles.addBtnText}>+ New</Text>
+        <TouchableOpacity style={styles.newBtn} onPress={handleOpenNewAlert}>
+          <Text style={styles.newBtnText}>+ New</Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── Tab switcher ─────────────────────────────────── */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tabItem} onPress={() => switchTab('active')}>
-          <Text style={[styles.tabLabel, tab === 'active' && styles.tabLabelActive]}>
+      {/* Tabs Row */}
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'ALERTS' ? styles.activeTab : null]}
+          onPress={() => setActiveTab('ALERTS')}
+        >
+          <Text style={[styles.tabText, activeTab === 'ALERTS' ? styles.activeTabText : null]}>
             My Alerts
-            {activeAlerts.length > 0 && (
-              <Text style={styles.tabBadge}> {activeAlerts.length}</Text>
-            )}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tabItem} onPress={() => switchTab('history')}>
-          <Text style={[styles.tabLabel, tab === 'history' && styles.tabLabelActive]}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'HISTORY' ? styles.activeTab : null]}
+          onPress={() => setActiveTab('HISTORY')}
+        >
+          <Text style={[styles.tabText, activeTab === 'HISTORY' ? styles.activeTabText : null]}>
             History
-            {history.length > 0 && (
-              <Text style={styles.tabBadge}> {history.length}</Text>
-            )}
           </Text>
         </TouchableOpacity>
-        <Animated.View style={[styles.tabIndicator, { left: indicatorLeft }]} />
       </View>
 
-      {/* ── Content ──────────────────────────────────────── */}
-      {tab === 'active' ? renderActive() : renderHistory()}
+      {/* Tab Content */}
+      <View style={styles.contentContainer}>
+        {activeTab === 'ALERTS' ? (
+          !isAuthenticated ? (
+            <View style={styles.centerView}>
+              <Text style={styles.authErrorText}>⚠️ Not authenticated</Text>
+              <Button
+                title="Retry"
+                onPress={() => setIsAuthenticated(true)}
+                variant="primary"
+                style={styles.retryBtn}
+              />
+            </View>
+          ) : (
+            <View style={styles.centerView}>
+              <Text style={styles.emptyTitle}>No active alerts</Text>
+              <Text style={styles.emptySub}>Tap “+ New” above to set your first alert.</Text>
+            </View>
+          )
+        ) : (
+          <View style={styles.centerView}>
+            <Text style={styles.mailboxIcon}>📬</Text>
+            <Text style={styles.emptyTitle}>No alerts triggered yet</Text>
+            <Text style={styles.emptySub}>
+              Your alert history will appear here once prices hit your targets.
+            </Text>
+          </View>
+        )}
+      </View>
 
-      {/* ── FAB (visible when there are already alerts) ── */}
-      {alerts.length > 0 && (
-        <TouchableOpacity style={styles.fab} onPress={() => setSheetOpen(true)}>
-          <Text style={styles.fabText}>＋</Text>
-        </TouchableOpacity>
-      )}
+      {/* Two-Step Modal Sheet */}
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.dragHandle} />
 
-      {/* ── Create sheet ─────────────────────────────────── */}
-      <CreateAlertSheet
-        visible={sheetOpen}
-        creating={creating}
-        onClose={() => setSheetOpen(false)}
-        onCreate={create}
-      />
-    </SafeAreaView>
+            {modalStep === 'CHOOSE_CROP' ? (
+              /* STEP 1: CHOOSE CROP */
+              <View style={styles.modalBody}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                    <Text style={styles.closeBtn}>✕</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>Choose Crop</Text>
+                  <View style={{ width: 20 }} />
+                </View>
+
+                <Text style={styles.stepSubtitle}>Which crop do you want to track?</Text>
+
+                <ScrollView contentContainerStyle={styles.cropGrid}>
+                  {CROPS.map((crop) => (
+                    <TouchableOpacity
+                      key={crop}
+                      style={styles.cropChip}
+                      onPress={() => handleSelectCrop(crop)}
+                    >
+                      <Text style={styles.cropChipText}>{crop}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : (
+              /* STEP 2: SET ALERT FORM */
+              <ScrollView contentContainerStyle={styles.modalBody}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setModalStep('CHOOSE_CROP')}>
+                    <Text style={styles.backBtn}>← Back</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}>Set Alert</Text>
+                  <View style={{ width: 40 }} />
+                </View>
+
+                <Text style={styles.cropHeading}>🌾 {selectedCrop}</Text>
+
+                {/* State Chips */}
+                <Text style={styles.fieldLabel}>State</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  {STATES.map((st) => (
+                    <TouchableOpacity
+                      key={st}
+                      style={[styles.stateChip, selectedState === st ? styles.activeStateChip : null]}
+                      onPress={() => setSelectedState(st)}
+                    >
+                      <Text style={[styles.stateChipText, selectedState === st ? styles.activeStateChipText : null]}>
+                        {st}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {/* Condition Toggle */}
+                <Text style={styles.fieldLabel}>Alert me when price is</Text>
+                <View style={styles.segmentRow}>
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, condition === 'ABOVE' ? styles.activeSegmentBtn : null]}
+                    onPress={() => setCondition('ABOVE')}
+                  >
+                    <Text style={[styles.segmentText, condition === 'ABOVE' ? styles.activeSegmentText : null]}>
+                      ▲ Above
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, condition === 'BELOW' ? styles.activeSegmentBtn : null]}
+                    onPress={() => setCondition('BELOW')}
+                  >
+                    <Text style={[styles.segmentText, condition === 'BELOW' ? styles.activeSegmentText : null]}>
+                      ▼ Below
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Target Price Input */}
+                <Input
+                  label="Target Price (₹ per quintal)"
+                  placeholder="e.g. 2400"
+                  value={targetPrice}
+                  onChangeText={setTargetPrice}
+                  keyboardType="numeric"
+                  prefix="₹"
+                  suffix="/qtl"
+                />
+
+                {/* Live Notification Banner */}
+                {Boolean(targetPrice) && (
+                  <View style={styles.summaryBanner}>
+                    <Text style={styles.summaryText}>
+                      🔔 Notify me when <Text style={styles.boldText}>{selectedCrop}</Text> {condition === 'ABOVE' ? '>' : '<'} <Text style={styles.boldText}>₹{targetPrice}/qtl</Text> in {selectedState}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Submit Button */}
+                <Button
+                  title="Set Alert →"
+                  onPress={handleSetAlert}
+                  variant="primary"
+                  style={styles.submitBtn}
+                />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: '#F5F5F5' },
-
-  // Top bar
-  topBar: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#EEEEEE',
+  container: {
+    flex: 1,
+    backgroundColor: tokens.colors.background,
   },
-  heading:    { fontSize: 24, fontWeight: '800', color: '#1A1A1A' },
-  subheading: { fontSize: 12, color: '#888', marginTop: 2 },
-  addBtn:     {
-    backgroundColor: '#2D7A3A', borderRadius: 10,
-    paddingHorizontal: 16, paddingVertical: 8,
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: tokens.spacing.md,
+    paddingTop: 50,
+    paddingBottom: tokens.spacing.sm,
+    backgroundColor: '#ffffff',
   },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-  // Tabs
-  tabBar: {
-    flexDirection: 'row', backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#EEEEEE',
-    position: 'relative',
+  title: {
+    ...tokens.typography.header,
+    color: tokens.colors.textPrimary,
   },
-  tabItem:       { flex: 1, paddingVertical: 14, alignItems: 'center' },
-  tabLabel:      { fontSize: 14, color: '#AAAAAA', fontWeight: '500' },
-  tabLabelActive:{ color: '#2D7A3A', fontWeight: '700' },
-  tabBadge:      { color: '#2D7A3A', fontWeight: '700' },
-  tabIndicator:  {
-    position: 'absolute', bottom: 0, width: '50%', height: 3,
-    backgroundColor: '#2D7A3A', borderTopLeftRadius: 2, borderTopRightRadius: 2,
+  subTitle: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textSecondary,
   },
-
-  // Section headers inside active list
-  sectionHeader: {
-    fontSize: 12, fontWeight: '700', color: '#888',
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6,
+  newBtn: {
+    backgroundColor: tokens.colors.primary,
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: 8,
+    borderRadius: tokens.borderRadius.sm,
   },
-
-  // History date headers
-  dateHeader: {
-    backgroundColor: '#F5F5F5', paddingHorizontal: 16,
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#EEEEEE',
+  newBtnText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 14,
   },
-  dateHeaderText: { fontSize: 12, fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  // Empty / loading / error states
-  centre:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  errorText:  { color: '#D32F2F', fontSize: 15, textAlign: 'center', marginBottom: 16 },
-  retryBtn:   { backgroundColor: '#2D7A3A', borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10 },
-  retryText:  { color: '#fff', fontWeight: '600' },
-  emptyIcon:  { fontSize: 52, marginBottom: 14 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A', marginBottom: 6 },
-  emptySub:   { fontSize: 13, color: '#888', textAlign: 'center', lineHeight: 20 },
-
-  // FAB
-  fab: {
-    position: 'absolute', right: 20, bottom: 28,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: '#2D7A3A', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#2D7A3A', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+  tabRow: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.border,
   },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 32 },
+  tab: {
+    flex: 1,
+    paddingVertical: tokens.spacing.sm,
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: tokens.colors.primary,
+  },
+  tabText: {
+    ...tokens.typography.body,
+    color: tokens.colors.textSecondary,
+  },
+  activeTabText: {
+    color: tokens.colors.primary,
+    fontWeight: '700',
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  centerView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: tokens.spacing.lg,
+  },
+  authErrorText: {
+    color: tokens.colors.error,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: tokens.spacing.md,
+  },
+  retryBtn: {
+    minWidth: 120,
+  },
+  mailboxIcon: {
+    fontSize: 48,
+    marginBottom: tokens.spacing.sm,
+  },
+  emptyTitle: {
+    ...tokens.typography.title,
+    color: tokens.colors.textPrimary,
+    marginBottom: 4,
+  },
+  emptySub: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textSecondary,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+  },
+  dragHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: '#d1d5db',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  modalBody: {
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: tokens.colors.border,
+    paddingBottom: tokens.spacing.xs,
+  },
+  closeBtn: {
+    fontSize: 18,
+    color: tokens.colors.textSecondary,
+  },
+  backBtn: {
+    fontSize: 14,
+    color: tokens.colors.textSecondary,
+  },
+  modalTitle: {
+    ...tokens.typography.title,
+    color: tokens.colors.textPrimary,
+  },
+  stepSubtitle: {
+    ...tokens.typography.body,
+    color: tokens.colors.textSecondary,
+  },
+  cropGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: tokens.spacing.xs,
+    paddingVertical: tokens.spacing.xs,
+  },
+  cropChip: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.sm,
+    backgroundColor: '#f3f4f6',
+    borderRadius: tokens.borderRadius.sm,
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  cropChipText: {
+    ...tokens.typography.body,
+    color: tokens.colors.textPrimary,
+  },
+  cropHeading: {
+    ...tokens.typography.header,
+    color: tokens.colors.primary,
+  },
+  fieldLabel: {
+    ...tokens.typography.caption,
+    fontWeight: '600',
+    color: tokens.colors.textSecondary,
+  },
+  horizontalScroll: {
+    flexDirection: 'row',
+  },
+  stateChip: {
+    paddingHorizontal: tokens.spacing.md,
+    paddingVertical: tokens.spacing.xs,
+    borderRadius: tokens.borderRadius.full,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+    marginRight: tokens.spacing.xs,
+  },
+  activeStateChip: {
+    backgroundColor: tokens.colors.primaryLight,
+    borderColor: tokens.colors.primary,
+  },
+  stateChipText: {
+    ...tokens.typography.caption,
+    color: tokens.colors.textSecondary,
+  },
+  activeStateChipText: {
+    color: tokens.colors.primary,
+    fontWeight: '700',
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: tokens.spacing.sm,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: tokens.borderRadius.md,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: tokens.colors.border,
+  },
+  activeSegmentBtn: {
+    backgroundColor: tokens.colors.primaryLight,
+    borderColor: tokens.colors.primary,
+  },
+  segmentText: {
+    ...tokens.typography.body,
+    color: tokens.colors.textSecondary,
+  },
+  activeSegmentText: {
+    color: tokens.colors.primary,
+    fontWeight: '700',
+  },
+  summaryBanner: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+    borderLeftWidth: 4,
+    borderLeftColor: tokens.colors.secondary,
+    padding: tokens.spacing.sm,
+    borderRadius: tokens.borderRadius.sm,
+  },
+  summaryText: {
+    ...tokens.typography.caption,
+    color: '#92400e',
+  },
+  boldText: {
+    fontWeight: '700',
+  },
+  submitBtn: {
+    marginTop: tokens.spacing.xs,
+  },
 });
