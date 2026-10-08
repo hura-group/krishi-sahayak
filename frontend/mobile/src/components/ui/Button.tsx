@@ -1,77 +1,95 @@
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ViewStyle,
-  TextStyle,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  type TouchableOpacityProps,
+  type StyleProp,
+  type ViewStyle,
+  type TextStyle,
 } from 'react-native';
-import { tokens } from '@/theme/tokens';
+import { useTheme } from '../../theme/useTheme';
+import { radius, touchTarget } from '../../theme/spacing';
+import { typeScale } from '../../theme/typography';
 
-interface ButtonProps {
-  title: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
+export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'md' | 'sm';
+  label: string;
   loading?: boolean;
-  disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  fullWidth?: boolean;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  title,
-  onPress,
+export function Button({
   variant = 'primary',
+  size = 'md',
+  label,
   loading = false,
   disabled = false,
   style,
-  textStyle,
-}) => {
+  labelStyle,
+  fullWidth = false,
+  onPress,
+  ...rest
+}: ButtonProps) {
+  const { colors } = useTheme();
+  const isDisabled = disabled || loading;
+
+  const containerStyle = StyleSheet.flatten([
+    styles.base,
+    size === 'sm' ? styles.sm : styles.md,
+    fullWidth && styles.fullWidth,
+    variant === 'primary' && {
+      backgroundColor: isDisabled ? colors.border : colors.primary,
+    },
+    variant === 'secondary' && {
+      backgroundColor: 'transparent',
+      borderColor: colors.primary,
+      borderWidth: 1.5,
+    },
+    variant === 'ghost' && {
+      backgroundColor: 'transparent',
+    },
+    style,
+  ]);
+
+  const resolvedLabelColor = variant === 'primary' ? '#ffffff' : colors.primary;
+
   return (
     <TouchableOpacity
+      activeOpacity={0.82}
+      disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.8}
-      style={[
-        styles.base,
-        styles[variant],
-        (disabled || loading) && styles.disabled,
-        style,
-      ]}
+      style={containerStyle}
+      {...rest}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'outline' ? tokens.colors.primary : '#ffffff'}
-        />
+        <ActivityIndicator size="small" color={resolvedLabelColor} />
       ) : (
-        <Text style={[styles.text, styles[`${variant}Text`], textStyle]}>
-          {title}
-        </Text>
+        <Text style={[styles.label, { color: resolvedLabelColor }, labelStyle]}>{label}</Text>
       )}
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: 14,
-    paddingHorizontal: tokens.spacing.lg,
-    borderRadius: tokens.borderRadius.md,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
+    paddingHorizontal: 20,
   },
-  primary: { backgroundColor: tokens.colors.primary },
-  secondary: { backgroundColor: tokens.colors.primaryLight },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: tokens.colors.primary,
+  md: { height: touchTarget.button },
+  sm: { height: touchTarget.min, paddingHorizontal: 16 },
+  fullWidth: { alignSelf: 'stretch' },
+  label: {
+    fontSize: typeScale.button.fontSize,
+    fontWeight: typeScale.button.fontWeight,
   },
-  disabled: { opacity: 0.5 },
-  text: { fontSize: 16, fontWeight: '700' },
-  primaryText: { color: '#ffffff' },
-  secondaryText: { color: tokens.colors.primary },
-  outlineText: { color: tokens.colors.primary },
 });
