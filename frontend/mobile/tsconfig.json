@@ -3,18 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*",
-        "./src/*"
-      ]
-    },
-    "types": [
-      "jest",
-      "@types/jest"
-    ]
+      "@/*": ["./*", "./src/*"]
+    }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ]
+  "include": ["**/*.ts", "**/*.tsx"]
 }

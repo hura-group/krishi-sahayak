@@ -1,23 +1,47 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { tokens } from '@/theme/tokens';
+import { TouchableOpacity, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useTheme } from '../../theme/useTheme';
+import { radius, elevation } from '../../theme/spacing';
 
-interface CardProps {
+export interface CardProps {
+  variant?: 'default' | 'hero';
   children: React.ReactNode;
-  style?: ViewStyle;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  noPadding?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, style }) => {
-  return <View style={[styles.card, style]}>{children}</View>;
-};
+export function Card({
+  variant = 'default',
+  children,
+  onPress,
+  style,
+  noPadding = false,
+}: CardProps) {
+  const { colors, isDark } = useTheme();
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: tokens.colors.cardBackground,
-    borderRadius: tokens.borderRadius.md,
-    padding: tokens.spacing.md,
-    borderWidth: 1,
-    borderColor: tokens.colors.border,
-    ...tokens.shadows.sm,
-  },
-});
+  const containerStyle: StyleProp<ViewStyle> = [
+    { backgroundColor: colors.cardBackground, overflow: 'hidden' },
+    !noPadding && { padding: 16 },
+    variant === 'hero'
+      ? {
+          borderTopLeftRadius: radius.leaf.topLeft,
+          borderTopRightRadius: radius.leaf.topRight,
+          borderBottomRightRadius: radius.leaf.bottomRight,
+          borderBottomLeftRadius: radius.leaf.bottomLeft,
+        }
+      : { borderRadius: radius.lg },
+    isDark ? { borderWidth: 1, borderColor: colors.border } : elevation.md,
+    style,
+  ];
+
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={containerStyle}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={containerStyle}>{children}</View>;
+}

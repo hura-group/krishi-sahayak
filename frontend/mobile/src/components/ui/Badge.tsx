@@ -1,39 +1,42 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { tokens } from '@/theme/tokens';
+import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { tokens } from '../../theme/tokens';
 
-interface BadgeProps {
+export interface BadgeProps {
   label: string;
-  variant?: 'success' | 'warning' | 'error' | 'info';
-  style?: ViewStyle;
+  variant?: 'warning' | 'success' | 'default';
+  style?: StyleProp<ViewStyle>;
 }
 
-export const Badge: React.FC<BadgeProps> = ({
-  label,
-  variant = 'info',
-  style,
-}) => {
+export function Badge({ label, variant = 'default', style }: BadgeProps) {
+  const getBackgroundColor = () => {
+    if (variant === 'warning') return '#fef3c7';
+    if (variant === 'success') return tokens.colors.primaryLight;
+    return tokens.colors.border;
+  };
+
+  const getTextColor = () => {
+    if (variant === 'warning') return '#92400e';
+    if (variant === 'success') return tokens.colors.primary;
+    return tokens.colors.textPrimary;
+  };
+
   return (
-    <View style={[styles.badge, styles[variant], style]}>
-      <Text style={[styles.text, styles[`${variant}Text`]]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: getBackgroundColor() }, style]}>
+      <Text style={[styles.text, { color: getTextColor() }]}>{label}</Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.xs,
-    borderRadius: tokens.borderRadius.full,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     alignSelf: 'flex-start',
   },
-  info: { backgroundColor: tokens.colors.primaryLight },
-  success: { backgroundColor: '#dcfce7' },
-  warning: { backgroundColor: '#fef3c7' },
-  error: { backgroundColor: '#fee2e2' },
-  text: { ...tokens.typography.caption, fontWeight: '600' },
-  infoText: { color: tokens.colors.primary },
-  successText: { color: tokens.colors.success },
-  warningText: { color: tokens.colors.secondary },
-  errorText: { color: tokens.colors.error },
+  text: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });

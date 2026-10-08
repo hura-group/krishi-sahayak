@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-} from 'react-native';
+import { Alert, Text, View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { tokens } from '@/theme/tokens';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -13,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { track } from '@/utils/analytics';
 
 const FORECAST_DATA = [
-  { day: 'Today', temp: '32°C', icon: '☀️️', condition: 'Sunny', rainProb: '10%' },
+  { day: 'Today', temp: '32°C', icon: '☀️', condition: 'Sunny', rainProb: '10%' },
   { day: 'Tue', temp: '30°C', icon: '⛅', condition: 'Partly Cloudy', rainProb: '25%' },
   { day: 'Wed', temp: '27°C', icon: '🌧️', condition: 'Moderate Rain', rainProb: '80%' },
   { day: 'Thu', temp: '28°C', icon: '🌦️', condition: 'Light Showers', rainProb: '45%' },
@@ -25,14 +19,16 @@ const ADVISORIES = [
     id: '1',
     crop: 'Wheat / Paddy',
     title: 'Postpone Pesticide Spraying',
-    description: 'Heavy rainfall predicted on Wednesday. Avoid chemical spraying to prevent runoff loss.',
+    description:
+      'Heavy rainfall predicted on Wednesday. Avoid chemical spraying to prevent runoff loss.',
     severity: 'warning' as const,
   },
   {
     id: '2',
     crop: 'Cotton / Groundnut',
     title: 'Optimal Irrigation Window',
-    description: 'Clear sunny weather expected today and Tuesday. Favorable conditions for field irrigation.',
+    description:
+      'Clear sunny weather expected today and Tuesday. Favorable conditions for field irrigation.',
     severity: 'success' as const,
   },
 ];
@@ -43,6 +39,10 @@ export default function WeatherScreen() {
   useEffect(() => {
     track('weather_viewed', { state: 'Gujarat', district: 'Ahmedabad', source: 'bottom_nav' });
   }, []);
+
+  const handleRefreshWeather = () => {
+    Alert.alert('Weather data refreshed', 'The latest forecast has been synced.');
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -67,14 +67,11 @@ export default function WeatherScreen() {
       {/* 5-Day Forecast */}
       <Text style={styles.sectionTitle}>5-Day Forecast</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.forecastRow}>
-        {FORECAST_DATA.map((item) => (
+        {FORECAST_DATA.map(item => (
           <TouchableOpacity
             key={item.day}
             onPress={() => setSelectedDay(item.day)}
-            style={[
-              styles.forecastCard,
-              selectedDay === item.day && styles.activeForecastCard,
-            ]}
+            style={[styles.forecastCard, selectedDay === item.day && styles.activeForecastCard]}
           >
             <Text style={styles.forecastDay}>{item.day}</Text>
             <Text style={styles.forecastIcon}>{item.icon}</Text>
@@ -90,11 +87,14 @@ export default function WeatherScreen() {
         <Badge label="Live Alert" variant="warning" />
       </View>
 
-      {ADVISORIES.map((adv) => (
+      {ADVISORIES.map(adv => (
         <Card key={adv.id} style={styles.advisoryCard}>
           <View style={styles.advisoryTop}>
             <Text style={styles.cropTag}>{adv.crop}</Text>
-            <Badge label={adv.severity === 'warning' ? 'Action Required' : 'Optimal'} variant={adv.severity} />
+            <Badge
+              label={adv.severity === 'warning' ? 'Action Required' : 'Optimal'}
+              variant={adv.severity}
+            />
           </View>
           <Text style={styles.advisoryTitle}>{adv.title}</Text>
           <Text style={styles.advisoryDesc}>{adv.description}</Text>
@@ -103,9 +103,9 @@ export default function WeatherScreen() {
 
       {/* Refresh Data Action */}
       <Button
-        title="🔄 Refresh Weather Data"
-        onPress={() => alert('Weather data refreshed!')}
-        variant="outline"
+        label="🔄 Refresh Weather Data"
+        onPress={handleRefreshWeather}
+        variant="secondary"
         style={styles.refreshBtn}
       />
     </ScrollView>
