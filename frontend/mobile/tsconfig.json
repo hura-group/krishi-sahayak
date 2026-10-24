@@ -5,6 +5,10 @@
     "types": ["nativewind/types", "jest"],
     "paths": {
       "@/*": ["./src/*", "./*"]
+
+
+      "@/*": ["./*", "./src/*"]
+
     }
   },
   "include": ["**/*.ts", "**/*.tsx"]
