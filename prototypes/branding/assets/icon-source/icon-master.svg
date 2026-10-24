@@ -1,0 +1,32 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    KisanSathi App Icon — Master Source
+    Concept: A leaf cluster (vertical blade + two branching leaves) forming
+    the letter "K" — representing growth, agriculture, and the app's identity.
+    Brand colors: primary #003925 (KisanSathi emerald), mark gradient #B0F1CD → #4CAF82
+    Canvas: 1024x1024, full bleed (no pre-rounded corners — OS applies its own mask)
+  -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F5238"/>
+      <stop offset="100%" stop-color="#003925"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B0F1CD"/>
+      <stop offset="100%" stop-color="#4CAF82"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+  <g transform="translate(512,512) scale(0.95) translate(-512,-512)">
+    <path d="M 430,212 C 515,377 515,647 430,812 C 345,647 345,377 430,212 Z" fill="url(#leafGrad)"/>
+    <g transform="translate(562,418) rotate(45)">
+      <path d="M 0,-190 C 60,-104.5 60,104.5 0,190 C -60,104.5 -60,-104.5 0,-190 Z" fill="url(#leafGrad)"/>
+    </g>
+    <g transform="translate(562,606) rotate(135)">
+      <path d="M 0,-190 C 60,-104.5 60,104.5 0,190 C -60,104.5 -60,-104.5 0,-190 Z" fill="url(#leafGrad)"/>
+    </g>
+    <circle cx="478" cy="512" r="20" fill="#0A3D29"/>
+  </g>
+</svg>

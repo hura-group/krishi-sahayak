@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>KrishiSahayak - Offline Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "earth-red": "#79564B",
+          "surface-container": "#eeeee9",
+          "surface-container-lowest": "#ffffff",
+          "error": "#ba1a1a",
+          "secondary-container": "#aeeecb",
+          "on-error-container": "#93000a",
+          "surface-variant": "#e3e3de",
+          "surface": "#fafaf5",
+          "error-container": "#ffdad6",
+          "background": "#fafaf5",
+          "surface-container-high": "#e8e8e3",
+          "text-secondary": "#444743",
+          "on-secondary-container": "#316e52",
+          "on-secondary": "#ffffff",
+          "on-surface-variant": "#404943",
+          "surface-dim": "#dadad5",
+          "primary-container": "#0f5238",
+          "secondary": "#2c694e",
+          "outline": "#707973",
+          "surface-container-low": "#f4f4ef",
+          "on-error": "#ffffff",
+          "text-primary": "#1A1C19",
+          "primary": "#003925",
+          "on-surface": "#1a1c19",
+          "harvest-gold": "#FFB347",
+          "tertiary": "#003925",
+          "on-primary": "#FFFFFF",
+          "tertiary-fixed-dim": "#95d4b3",
+        },
+        borderRadius: {
+          DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"
+        },
+        fontFamily: { sans: ["Public Sans", "sans-serif"] }
+      }
+    }
+  }
+</script>
+<style>
+  body { font-family: 'Public Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; vertical-align: middle; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* ── Offline banner ── */
+  @keyframes bannerSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+  @keyframes bannerSlideUp {
+    from { transform: translateY(0);     opacity: 1; }
+    to   { transform: translateY(-100%); opacity: 0; }
+  }
+  #offline-banner.show { animation: bannerSlideDown 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+  #offline-banner.hide { animation: bannerSlideUp   0.3s  cubic-bezier(0.4,0,1,1)    forwards; }
+
+  /* ── Sync toast ── */
+  @keyframes toastSlideUp {
+    from { transform: translateX(-50%) translateY(120%); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+  }
+  @keyframes toastSlideDown {
+    from { transform: translateX(-50%) translateY(0);    opacity: 1; }
+    to   { transform: translateX(-50%) translateY(120%); opacity: 0; }
+  }
+  #sync-toast.show { animation: toastSlideUp   0.42s cubic-bezier(0.16,1,0.3,1) forwards; }
+  #sync-toast.hide { animation: toastSlideDown 0.3s  cubic-bezier(0.4,0,1,1)    forwards; }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; }
+
+  /* ── Live dot pulse ── */
+  @keyframes livePulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.5; transform: scale(0.85); }
+  }
+  .live-pulse { animation: livePulse 2s ease-in-out infinite; }
+
+  /* ── Card hover ── */
+  .data-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .data-card:active { transform: scale(0.985); }
+
+  body { min-height: max(884px, 100dvh); }
+</style>
+</head>
+
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+
+<!-- ═══ TopAppBar ═══════════════════════════════════════════════════════════ -->
+<header class="bg-emerald-900 text-white flex justify-between items-center w-full px-4 h-16 sticky top-0 z-[60]">
+  <div class="flex items-center gap-3">
+    <button class="material-symbols-outlined p-2 hover:bg-emerald-800 active:scale-95 transition-transform rounded-full">arrow_back</button>
+    <h1 class="font-black text-xl tracking-tight">KrishiSahayak</h1>
+  </div>
+  <!-- Connectivity status chip -->
+  <div id="conn-chip" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-earth-red/90 text-white transition-all duration-500">
+    <span class="material-symbols-outlined text-[13px]" id="conn-icon">cloud_off</span>
+    <span id="conn-label">Offline</span>
+  </div>
+</header>
+
+<!-- ═══ Offline Banner ══════════════════════════════════════════════════════ -->
+<div id="offline-banner" class="show bg-earth-red text-white px-4 py-3 flex items-center justify-between sticky top-16 z-50 border-b border-black/10">
+  <div class="flex items-center gap-3 flex-1 min-w-0">
+    <span class="material-symbols-outlined text-[20px] flex-shrink-0">cloud_off</span>
+    <div class="min-w-0">
+      <p class="text-[13px] font-bold leading-tight">No internet connection. Using offline mode.</p>
+      <p class="text-[11px] opacity-85 mt-0.5">Data shown below was cached from your last sync.</p>
+    </div>
+  </div>
+  <button
+    id="banner-dismiss"
+    class="material-symbols-outlined text-white p-1.5 rounded-full hover:bg-white/15 active:scale-90 transition-all flex-shrink-0 ml-2"
+    aria-label="Dismiss offline banner"
+  >close</button>
+</div>
+
+<!-- ═══ Main content ════════════════════════════════════════════════════════ -->
+<main class="flex-grow px-4 pb-32 pt-4 space-y-6">
+
+  <!-- Section: Current Crop ─────────────────────────────────────────── -->
+  <section>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-[20px] font-semibold text-primary">Current Crop</h2>
+      <!-- Cache badge — shown/styled by JS -->
+      <div id="crop-cache-badge" class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-300/60">
+        <span class="material-symbols-outlined text-[12px] text-amber-700">history</span>
+        <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Cached 2 hours ago</span>
+      </div>
+    </div>
+    <div class="bg-surface-container-low rounded-xl border border-surface-dim overflow-hidden shadow-sm data-card">
+      <div class="h-32 w-full relative">
+        <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEJ2nJ21HDW7n0eGvWhXyOQUcv_cytuSmAufNI0Li-bhuvNGyQAvRzo5UWMTyC7SeGk5euQQOqy9QE0krMs6KnglzzusvtviKkWYBu4cj9Zv4VnosnJlTefx1b8qUCxZzDJIiwkToJSYBdjZoPtiW9i2N8j5YGdGvy2v7jX5mpDCHGQKiTieLx3oRHdCPS9BYE5vPAFW3bLK670sDuiCBFh5_CvcqciKe6ksG2Yg_QMSnC5hGkunWQjr3gNifIEHWuqBvhU9OfXJg" alt="Winter wheat field"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div class="absolute bottom-3 left-4">
+          <h3 class="text-white font-semibold text-[20px]">Winter Wheat</h3>
+          <p class="text-white/80 text-[14px]">Mid-Season Stage</p>
+        </div>
+      </div>
+      <div class="p-4 grid grid-cols-2 gap-4">
+        <div class="flex flex-col">
+          <span class="text-text-secondary text-[11px] font-bold uppercase tracking-wide">Expected Yield</span>
+          <span class="text-text-primary font-semibold text-[20px]">4.2 Tons/ha</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="text-text-secondary text-[11px] font-bold uppercase tracking-wide">Last Check</span>
+          <span class="text-text-primary font-semibold text-[20px]">March 12</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section: Market Prices ───────────────────────────────────────── -->
+  <section>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-[20px] font-semibold text-primary">Market Prices</h2>
+      <div id="market-cache-badge" class="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-300/60">
+        <span class="material-symbols-outlined text-[12px] text-amber-700">history</span>
+        <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Cached 2 hours ago</span>
+      </div>
+    </div>
+    <div class="space-y-3">
+      <!-- Soybean card -->
+      <div class="bg-white rounded-xl p-4 border border-surface-dim flex items-center justify-between shadow-sm data-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-secondary-container flex items-center justify-center text-on-secondary-container">
+            <span class="material-symbols-outlined text-3xl">agriculture</span>
+          </div>
+          <div>
+            <p class="font-semibold text-[20px] text-text-primary leading-tight">Soybeans</p>
+            <p class="text-[14px] text-text-secondary">Indore Mandi</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-semibold text-[20px] text-text-primary">₹5,420</p>
+          <p class="text-[12px] font-bold text-earth-red">▲ 0.4%</p>
+        </div>
+      </div>
+      <!-- Mustard Seed card -->
+      <div class="bg-white rounded-xl p-4 border border-surface-dim flex items-center justify-between shadow-sm data-card">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-lg bg-tertiary-fixed-dim/30 flex items-center justify-center text-tertiary">
+            <span class="material-symbols-outlined text-3xl">park</span>
+          </div>
+          <div>
+            <p class="font-semibold text-[20px] text-text-primary leading-tight">Mustard Seed</p>
+            <p class="text-[14px] text-text-secondary">Jaipur Mandi</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="font-semibold text-[20px] text-text-primary">₹6,150</p>
+          <p class="text-[12px] font-bold text-secondary">▼ 1.2%</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section: Weather (Actionable RetryState) ─────────────────────── -->
+  <section>
+    <h2 class="text-[20px] font-semibold text-primary mb-3">Local Weather</h2>
+    <div id="weather-error" class="bg-error-container/20 border-2 border-dashed border-earth-red/30 rounded-2xl p-8 flex flex-col items-center text-center space-y-4">
+      <div class="w-16 h-16 bg-error-container text-on-error-container rounded-full flex items-center justify-center">
+        <span class="material-symbols-outlined text-3xl" id="retry-icon">sync_problem</span>
+      </div>
+      <div class="space-y-1">
+        <h3 class="font-semibold text-[20px] text-on-error-container" id="retry-title">Could Not Update Weather</h3>
+        <p class="text-[14px] text-text-secondary px-6" id="retry-desc">We need an internet connection to fetch real-time forecasts for your area.</p>
+      </div>
+      <!-- Retry button -->
+      <button
+        id="retry-btn"
+        onclick="handleRetry(this)"
+        class="bg-earth-red text-white font-bold text-[14px] px-8 py-3 rounded-full flex items-center gap-2 active:scale-95 transition-all shadow-md hover:bg-[#6a4a40]"
+      >
+        <span class="material-symbols-outlined text-[18px]" id="retry-btn-icon">refresh</span>
+        <span id="retry-btn-label">RETRY</span>
+      </button>
+      <p id="retry-attempt-text" class="text-[11px] text-text-secondary opacity-0 transition-opacity">Attempt 1 of 3 failed</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══ Sync Toast ══════════════════════════════════════════════════════════ -->
+<div
+  id="sync-toast"
+  role="status"
+  aria-live="polite"
+  class="fixed bottom-24 left-1/2 w-[90%] max-w-[400px] z-[70] hidden"
+  style="transform: translateX(-50%)"
+>
+  <div class="bg-secondary text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/20">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined text-[20px]" id="toast-icon">sync</span>
+      </div>
+      <div>
+        <p class="font-bold text-[14px] leading-tight" id="toast-title">Back online!</p>
+        <p class="text-[12px] opacity-90" id="toast-body">Syncing 3 saved updates…</p>
+      </div>
+    </div>
+    <button
+      onclick="dismissToast()"
+      class="material-symbols-outlined text-white/70 hover:text-white ml-2"
+      aria-label="Dismiss"
+    >close</button>
+  </div>
+</div>
+
+<!-- ═══ Bottom Nav ══════════════════════════════════════════════════════════ -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-2 pb-safe bg-white/80 backdrop-blur-md rounded-t-2xl border-t border-zinc-200 shadow-lg">
+  <a class="flex flex-col items-center justify-center text-emerald-900 font-bold bg-emerald-50 rounded-xl px-3 py-1 active:scale-[0.96] transition-all" href="#">
+    <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">home</span>
+    <span class="text-[12px] font-medium">Home</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-zinc-500 hover:bg-zinc-100 rounded-xl px-3 py-1 active:scale-[0.96] transition-all" href="#">
+    <span class="material-symbols-outlined">agriculture</span>
+    <span class="text-[12px] font-medium">Crops</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-zinc-500 hover:bg-zinc-100 rounded-xl px-3 py-1 active:scale-[0.96] transition-all" href="#">
+    <span class="material-symbols-outlined">storefront</span>
+    <span class="text-[12px] font-medium">Market</span>
+  </a>
+  <a class="flex flex-col items-center justify-center text-zinc-500 hover:bg-zinc-100 rounded-xl px-3 py-1 active:scale-[0.96] transition-all" href="#">
+    <span class="material-symbols-outlined">cloud</span>
+    <span class="text-[12px] font-medium">Weather</span>
+  </a>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// KrishiSahayak Offline Controller
+// ═══════════════════════════════════════════════════════════════════════════
+
+const UI = {
+  banner:      document.getElementById('offline-banner'),
+  bannerDismiss: document.getElementById('banner-dismiss'),
+  connChip:    document.getElementById('conn-chip'),
+  connIcon:    document.getElementById('conn-icon'),
+  connLabel:   document.getElementById('conn-label'),
+  toast:       document.getElementById('sync-toast'),
+  toastTitle:  document.getElementById('toast-title'),
+  toastBody:   document.getElementById('toast-body'),
+  toastIcon:   document.getElementById('toast-icon'),
+  retryBtn:    document.getElementById('retry-btn'),
+  retryBtnIcon:document.getElementById('retry-btn-icon'),
+  retryBtnLabel:document.getElementById('retry-btn-label'),
+  retryTitle:  document.getElementById('retry-title'),
+  retryDesc:   document.getElementById('retry-desc'),
+  retryAttempt:document.getElementById('retry-attempt-text'),
+  cropBadge:   document.getElementById('crop-cache-badge'),
+  marketBadge: document.getElementById('market-cache-badge'),
+};
+
+let isOnline         = false; // start offline to match the design
+let bannerDismissed  = false;
+let toastTimer       = null;
+let retryAttempts    = 0;
+let retryCountdown   = null;
+const MAX_ATTEMPTS   = 3;
+const PENDING_SYNCS  = 3;
+
+// ── Cache badge setup ───────────────────────────────────────────────────────
+
+function updateCacheBadges(online) {
+  const badges = [UI.cropBadge, UI.marketBadge];
+  badges.forEach(badge => {
+    if (!badge) return;
+    if (online) {
+      badge.className = 'flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-full border border-emerald-300/60';
+      badge.innerHTML = `
+        <span class="live-pulse inline-block w-2 h-2 rounded-full bg-emerald-600 flex-shrink-0"></span>
+        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Live</span>`;
+    } else {
+      badge.className = 'flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-full border border-amber-300/60';
+      badge.innerHTML = `
+        <span class="material-symbols-outlined text-[12px] text-amber-700">history</span>
+        <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Cached 2 hours ago</span>`;
+    }
+  });
+}
+
+// ── Connection chip ─────────────────────────────────────────────────────────
+
+function updateConnChip(online) {
+  if (online) {
+    UI.connChip.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/20 text-white transition-all duration-500';
+    UI.connIcon.textContent = 'cloud_done';
+    UI.connLabel.textContent = 'Online';
+  } else {
+    UI.connChip.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-earth-red/90 text-white transition-all duration-500';
+    UI.connIcon.textContent = 'cloud_off';
+    UI.connLabel.textContent = 'Offline';
+  }
+}
+
+// ── Banner ──────────────────────────────────────────────────────────────────
+
+function showBanner() {
+  if (bannerDismissed || !UI.banner) return;
+  UI.banner.classList.remove('hidden', 'hide');
+  UI.banner.classList.add('show');
+}
+
+function hideBanner() {
+  if (!UI.banner) return;
+  UI.banner.classList.remove('show');
+  UI.banner.classList.add('hide');
+  setTimeout(() => UI.banner.classList.add('hidden'), 320);
+  // Reset dismiss state for next offline event
+  bannerDismissed = false;
+}
+
+UI.bannerDismiss?.addEventListener('click', () => {
+  bannerDismissed = true;
+  hideBanner();
+});
+
+// ── Toast ───────────────────────────────────────────────────────────────────
+
+function showSyncToast() {
+  clearTimeout(toastTimer);
+  UI.toast.classList.remove('hidden', 'hide');
+  UI.toast.classList.add('show');
+  UI.toastTitle.textContent  = 'Back online!';
+  UI.toastBody.textContent   = `Syncing ${PENDING_SYNCS} saved updates…`;
+  UI.toastIcon.textContent   = 'sync';
+  UI.toastIcon.classList.add('spin');
+
+  // Simulate sync completing after 2.5 s
+  setTimeout(() => {
+    UI.toastTitle.textContent  = 'All synced!';
+    UI.toastBody.textContent   = `${PENDING_SYNCS} updates uploaded successfully`;
+    UI.toastIcon.textContent   = 'check_circle';
+    UI.toastIcon.classList.remove('spin');
+  }, 2500);
+
+  // Auto-dismiss after 6 s
+  toastTimer = setTimeout(dismissToast, 6000);
+}
+
+function dismissToast() {
+  clearTimeout(toastTimer);
+  UI.toast.classList.remove('show');
+  UI.toast.classList.add('hide');
+  setTimeout(() => { UI.toast.classList.add('hidden'); UI.toast.classList.remove('hide'); }, 320);
+}
+
+// ── Retry button ────────────────────────────────────────────────────────────
+
+function handleRetry(btn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  UI.retryBtnIcon.textContent = 'sync';
+  UI.retryBtnIcon.classList.add('spin');
+  UI.retryBtnLabel.textContent = 'Retrying…';
+
+  // Simulate network request
+  setTimeout(() => {
+    UI.retryBtnIcon.classList.remove('spin');
+    retryAttempts++;
+
+    if (isOnline) {
+      // Success!
+      UI.retryBtnIcon.textContent = 'check';
+      UI.retryBtnLabel.textContent = 'Loaded!';
+      setTimeout(() => { document.getElementById('weather-error')?.remove(); }, 800);
+      return;
+    }
+
+    // Still offline — back-off
+    if (retryAttempts < MAX_ATTEMPTS) {
+      const cooldown = Math.pow(2, retryAttempts - 1);
+      UI.retryAttempt.textContent = `Attempt ${retryAttempts} of ${MAX_ATTEMPTS} failed`;
+      UI.retryAttempt.classList.remove('opacity-0');
+      let remaining = cooldown;
+      UI.retryBtnLabel.textContent = `Retry in ${remaining}s`;
+      UI.retryBtnIcon.textContent  = 'hourglass_empty';
+
+      retryCountdown = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(retryCountdown);
+          btn.disabled = false;
+          UI.retryBtnIcon.textContent  = 'refresh';
+          UI.retryBtnLabel.textContent = 'RETRY';
+        } else {
+          UI.retryBtnLabel.textContent = `Retry in ${remaining}s`;
+        }
+      }, 1000);
+    } else {
+      // Gave up
+      UI.retryTitle.textContent = 'Still Not Working';
+      UI.retryDesc.textContent  = `Failed after ${MAX_ATTEMPTS} attempts. Check your connection and try again later.`;
+      UI.retryAttempt.textContent = `All ${MAX_ATTEMPTS} attempts failed`;
+      UI.retryAttempt.classList.remove('opacity-0');
+      btn.textContent = '✉ Contact Support';
+      btn.disabled = false;
+      btn.onclick = () => window.location.href = 'mailto:support@kisansathi.in';
+    }
+  }, 2200);
+}
+
+// ── Master go-online / go-offline ───────────────────────────────────────────
+
+function goOffline() {
+  isOnline = false;
+  updateConnChip(false);
+  updateCacheBadges(false);
+  setTimeout(showBanner, 800); // debounce
+}
+
+function goOnline() {
+  isOnline = true;
+  updateConnChip(true);
+  updateCacheBadges(true);
+  hideBanner();
+  showSyncToast();
+}
+
+// ── Real browser connectivity events ────────────────────────────────────────
+
+window.addEventListener('online',  () => goOnline());
+window.addEventListener('offline', () => goOffline());
+
+// ── Demo buttons (remove in production) ─────────────────────────────────────
+// These let you toggle online/offline in the browser for testing.
+// Inject a small dev toolbar only in development.
+
+if (window.location.search.includes('demo') || window.location.hostname === 'localhost') {
+  const toolbar = document.createElement('div');
+  toolbar.style.cssText = 'position:fixed;top:80px;right:12px;z-index:999;display:flex;flex-direction:column;gap:6px';
+  toolbar.innerHTML = `
+    <button onclick="goOffline()" style="font-size:11px;padding:6px 10px;background:#79564B;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:sans-serif;font-weight:700">▼ Go Offline</button>
+    <button onclick="goOnline()"  style="font-size:11px;padding:6px 10px;background:#003925;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:sans-serif;font-weight:700">▲ Go Online</button>`;
+  document.body.appendChild(toolbar);
+}
+
+// Initialise in offline state (matching the design)
+updateConnChip(false);
+updateCacheBadges(false);
+</script>
+</body>
+</html>

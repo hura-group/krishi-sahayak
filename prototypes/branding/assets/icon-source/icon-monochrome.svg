@@ -1,0 +1,18 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Android 13+ Themed (Monochrome) Icon Layer
+    Single flat color silhouette — the OS applies its own tint (wallpaper-based
+    Material You color) over this shape, so it MUST be one solid color only.
+    Same geometry and scale as the foreground layer for visual consistency.
+  -->
+  <g transform="translate(512,512) scale(0.93) translate(-512,-512)">
+    <path d="M 430,212 C 515,377 515,647 430,812 C 345,647 345,377 430,212 Z" fill="#FFFFFF"/>
+    <g transform="translate(562,418) rotate(45)">
+      <path d="M 0,-190 C 60,-104.5 60,104.5 0,190 C -60,104.5 -60,-104.5 0,-190 Z" fill="#FFFFFF"/>
+    </g>
+    <g transform="translate(562,606) rotate(135)">
+      <path d="M 0,-190 C 60,-104.5 60,104.5 0,190 C -60,104.5 -60,-104.5 0,-190 Z" fill="#FFFFFF"/>
+    </g>
+    <circle cx="478" cy="512" r="20" fill="#FFFFFF"/>
+  </g>
+</svg>
