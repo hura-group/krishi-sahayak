@@ -43,7 +43,9 @@
     "expo-web-browser": "~15.0.11",
     "invariant": "^2.2.4",
     "libphonenumber-js": "^1.13.14",
+
     "nativewind": "^4.2.7",
+
     "posthog-react-native": "^4.68.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",

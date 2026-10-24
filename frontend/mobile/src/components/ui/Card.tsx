@@ -8,7 +8,9 @@ export interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
+
   className?: string;
+
   noPadding?: boolean;
 }
 
@@ -17,7 +19,9 @@ export function Card({
   children,
   onPress,
   style,
+
   className,
+
   noPadding = false,
 }: CardProps) {
   const { colors, isDark } = useTheme();
@@ -39,12 +43,16 @@ export function Card({
 
   if (onPress) {
     return (
+
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={onPress}
         style={containerStyle}
         className={className}
       >
+
+      <TouchableOpacity activeOpacity={0.88} onPress={onPress} style={containerStyle}>
+
         {children}
       </TouchableOpacity>
     );
@@ -55,4 +63,5 @@ export function Card({
       {children}
     </View>
   );
+  return <View style={containerStyle}>{children}</View>;
 }
