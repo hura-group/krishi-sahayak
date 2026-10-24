@@ -1,0 +1,125 @@
+name: Visual Bug (Polish QA Sweep)
+description: File a visual/UI bug found during the language × theme × device test matrix sweep.
+title: "[Visual Bug] "
+labels: ["bug", "qa-sweep"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Filed as part of the **Polish QA Sweep** (Week 15 target: zero P1s).
+        One issue per bug. If the same bug appears on multiple screens, file
+        it once and list every affected screen in the "Affected screens" field.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: P1 = must fix before launch. P2 = can ship and fix later.
+      options:
+        - "P1 — must fix before launch"
+        - "P2 — launch later"
+    validations:
+      required: true
+
+  - type: input
+    id: screen
+    attributes:
+      label: Screen / Component
+      description: The exact screen name from test-matrix.csv (e.g. "Leaderboard Screen")
+      placeholder: "Leaderboard Screen"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - English
+        - Hindi
+        - Gujarati
+        - "All three (layout/structural bug)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Theme
+      options:
+        - Light
+        - Dark
+        - Both
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      options:
+        - "Android (mid-range)"
+        - iOS
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: Device model + OS version
+      placeholder: "e.g. Redmi Note 12 / Android 13, or iPhone 12 / iOS 17.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should it look like?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: What does it actually look like? Be specific (clipped text, wrong color, overlap, misalignment, etc.)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set device language to Gujarati
+        2. Switch to Dark mode
+        3. Navigate to Leaderboard
+        4. Observe the "XP / Streak" column header
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag and drop the screenshot here. Required for every visual bug — "looked broken" without a screenshot will be sent back.
+    validations:
+      required: true
+
+  - type: input
+    id: affected_screens
+    attributes:
+      label: Affected screens (if this bug repeats elsewhere)
+      placeholder: "e.g. also seen on Badge Grid, Settings — Legal Links"
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Anything else — suspected root cause, related issue links, etc.
+    validations:
+      required: false

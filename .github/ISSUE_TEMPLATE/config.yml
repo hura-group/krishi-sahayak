@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: QA Sweep Test Matrix
+    url: https://github.com/hura-group/krishi-sahayak/blob/main/qa-sweep/test-matrix/test-matrix.csv
+    about: Check the test matrix before filing — your bug may already be tracked as a cell in the sweep.
